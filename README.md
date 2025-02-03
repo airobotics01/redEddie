@@ -10,3 +10,6 @@
 - **아이작 매니퓰레이터 활용(진행)**  
   - Isaac Manipulator를 활용한 로봇 동작 튜토리얼  
   - 공유: [아이작 매니퓰레이터 진행과정](https://docs.google.com/presentation/d/16b1Y-nSu7uLh3Rk2s9EahGRT1BshBXK5Plk8FiTDLNU/edit?usp=sharing)
+ 
+- **API 공부(예정)**
+  - Isaac Manipulator의 API 정리와 연동 테스트
