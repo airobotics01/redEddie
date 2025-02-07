@@ -3,6 +3,9 @@ import os
 
 os.environ["OMNI_KIT_ACCEPT_EULA"] = "YES"
 
+# Specify the GPU to use (e.g., GPU 0)
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 CONFIG = {
     "renderer": "RayTracedLighting",
     "headless": False,
