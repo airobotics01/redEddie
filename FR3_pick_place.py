@@ -12,7 +12,7 @@ import omni.isaac.manipulators.controllers as manipulators_controllers
 from omni.isaac.manipulators.grippers import ParallelGripper
 from omni.isaac.core.utils.stage import add_reference_to_stage
 from omni.isaac.core.utils.types import ArticulationAction
-import omni.isaac.core.tasks as tasks
+from omni.isaac.core.tasks import PickPlace
 import omni.isaac.motion_generation as mg
 from omni.isaac.core.articulations import Articulation
 from omni.isaac.core.utils.extensions import get_extension_path_from_name
@@ -78,16 +78,16 @@ class FR3PickPlaceController(manipulators_controllers.PickPlaceController):
     ) -> None:
         if events_dt is None:
             events_dt = [
-                0.005,
-                0.002,
-                1,
-                0.05,
-                0.0008,
-                0.005,
-                0.0008,
-                0.1,
-                0.0008,
-                0.008,
+                0.005,  # Phase 0: 1/0.005 steps
+                0.002,  # Phase 1: 1/0.002 steps
+                0.1,  # Phase 2: 10 steps - waiting phase, can have larger dt
+                0.05,  # Phase 3: 20 steps - gripper closing
+                0.0008,  # Phase 4: 1/0.0008 steps
+                0.005,  # Phase 5: 1/0.005 steps
+                0.0008,  # Phase 6: 1/0.0008 steps
+                0.05,  # Phase 7: 20 steps - gripper opening
+                0.0008,  # Phase 8: 1/0.0008 steps
+                0.008,  # Phase 9: 1/0.008 steps
             ]
         super().__init__(
             name=name,
@@ -96,17 +96,12 @@ class FR3PickPlaceController(manipulators_controllers.PickPlaceController):
                 robot_articulation=robot_articulation,
             ),
             gripper=gripper,
+            end_effector_initial_height=end_effector_initial_height,
             events_dt=events_dt,
         )
 
-    def forward(self, picking_position, placing_position, current_joint_positions):
-        # Implement FR3-specific logic here if needed
-        return super().forward(
-            picking_position, placing_position, current_joint_positions
-        )
 
-
-class PickPlace(tasks.PickPlace):
+class FR3PickPlaceTask(PickPlace):
     def __init__(
         self,
         name: str = "FR3_pick_place",
@@ -115,8 +110,7 @@ class PickPlace(tasks.PickPlace):
         target_position: np.ndarray = None,
         offset: np.ndarray = None,
     ) -> None:
-        tasks.PickPlace.__init__(
-            self,
+        super().__init__(
             name=name,
             cube_initial_position=cube_initial_position,
             cube_initial_orientation=cube_initial_orientation,
@@ -137,7 +131,7 @@ class PickPlace(tasks.PickPlace):
             joint_closed_positions=np.array([0, 0]),
             action_deltas=np.array([0.04, 0.04]),
         )
-        manipulator = SingleManipulator(
+        fr3_robot = SingleManipulator(
             prim_path=robot_prim_path,
             name="my_fr3",
             end_effector_prim_name="fr3_hand",
@@ -148,15 +142,15 @@ class PickPlace(tasks.PickPlace):
         )
         joints_default_positions[7] = 0.04
         joints_default_positions[8] = 0.04
-        manipulator.set_joints_default_state(positions=joints_default_positions)
-        return manipulator
+        fr3_robot.set_joints_default_state(positions=joints_default_positions)
+        return fr3_robot
 
 
 my_world = World(stage_units_in_meters=1.0)
 
 target_position = np.array([-0.3, 0.6, 0])
 target_position[2] = 0.0515 / 2.0
-my_task = PickPlace()
+my_task = FR3PickPlaceTask(target_position=target_position)
 my_world.add_task(my_task)
 my_world.reset()
 
@@ -169,25 +163,36 @@ my_controller = FR3PickPlaceController(
     name="FR3_controller",
     gripper=gripper,
     robot_articulation=fr3_robot,
+    end_effector_initial_height=0.3,
 )
 
 task_params = my_world.get_task("FR3_pick_place").get_params()
 articulation_controller = fr3_robot.get_articulation_controller()
 
-
-# while simulation_app.is_running():
-#     my_world.step(render=True)
-
-i = 0
 reset_needed = False
 while simulation_app.is_running():
     my_world.step(render=True)
+    if my_world.is_stopped() and not reset_needed:
+        reset_needed = True
     if my_world.is_playing():
-        if my_world.current_time_step_index == 0:
+        if reset_needed or my_world.current_time_step_index == 0:
+            my_task.cleanup()
             my_world.reset()
             my_controller.reset()
+            my_task.post_reset()
+            reset_needed = False
+
         observations = my_world.get_observations()
         # forward the observation values to the controller to get the actions
+        if (
+            task_params["cube_name"]["value"] in observations
+            and "position" in observations[task_params["cube_name"]["value"]]
+            and "target_position" in observations[task_params["cube_name"]["value"]]
+            and task_params["robot_name"]["value"] in observations
+            and "joint_positions" in observations[task_params["robot_name"]["value"]]
+        ):
+            print("observation valid")
+
         actions = my_controller.forward(
             picking_position=observations[task_params["cube_name"]["value"]][
                 "position"
@@ -198,8 +203,11 @@ while simulation_app.is_running():
             current_joint_positions=observations[task_params["robot_name"]["value"]][
                 "joint_positions"
             ],
+            end_effector_offset=np.array([0, 0, 0.0925]),
         )
         if my_controller.is_done():
             print("done picking and placing")
+        else:
+            print(f"Phase: {my_controller.get_current_event()}")
         articulation_controller.apply_action(actions)
 simulation_app.close()
