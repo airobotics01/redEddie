@@ -26,7 +26,6 @@ class FR3RMPFlowController(mg.MotionPolicyController):
         end_effector_frame_name="fr3_hand",
         physics_dt: float = 1.0 / 60.0,
     ) -> None:
-        # TODO: change the follow paths
         mg_extension_path = get_extension_path_from_name("omni.isaac.motion_generation")
         rmp_config_dir = os.path.join(
             mg_extension_path, "motion_policy_configs", "FR3", "rmpflow"
@@ -168,22 +167,39 @@ my_controller = FR3PickPlaceController(
 
 task_params = my_world.get_task("FR3_pick_place").get_params()
 articulation_controller = fr3_robot.get_articulation_controller()
-
 reset_needed = False
 while simulation_app.is_running():
     my_world.step(render=True)
+
     if my_world.is_stopped() and not reset_needed:
         reset_needed = True
+
     if my_world.is_playing():
         if reset_needed or my_world.current_time_step_index == 0:
+            # 기존 작업 정리
             my_task.cleanup()
             my_world.reset()
-            my_controller.reset()
+
+            # 새로운 로봇 생성 및 초기화
+            fr3_robot = my_task.set_robot()
+            fr3_robot.initialize()
+            gripper = fr3_robot.gripper
+
+            # 컨트롤러 재설정 (기존 컨트롤러가 이전 로봇을 참조하기 때문)
+            my_controller = FR3PickPlaceController(
+                name="FR3_controller",
+                gripper=gripper,
+                robot_articulation=fr3_robot,
+                end_effector_initial_height=0.3,
+            )
+
+            # task 초기화
             my_task.post_reset()
             reset_needed = False
 
         observations = my_world.get_observations()
-        # forward the observation values to the controller to get the actions
+
+        # Observation 확인
         if (
             task_params["cube_name"]["value"] in observations
             and "position" in observations[task_params["cube_name"]["value"]]
@@ -191,23 +207,27 @@ while simulation_app.is_running():
             and task_params["robot_name"]["value"] in observations
             and "joint_positions" in observations[task_params["robot_name"]["value"]]
         ):
-            print("observation valid")
+            print("Observation valid")
 
-        actions = my_controller.forward(
-            picking_position=observations[task_params["cube_name"]["value"]][
-                "position"
-            ],
-            placing_position=observations[task_params["cube_name"]["value"]][
-                "target_position"
-            ],
-            current_joint_positions=observations[task_params["robot_name"]["value"]][
-                "joint_positions"
-            ],
-            end_effector_offset=np.array([0, 0, 0.0925]),
-        )
-        if my_controller.is_done():
-            print("done picking and placing")
-        else:
-            print(f"Phase: {my_controller.get_current_event()}")
-        articulation_controller.apply_action(actions)
-simulation_app.close()
+            # 컨트롤러 업데이트 및 동작 수행
+            actions = my_controller.forward(
+                picking_position=observations[task_params["cube_name"]["value"]][
+                    "position"
+                ],
+                placing_position=observations[task_params["cube_name"]["value"]][
+                    "target_position"
+                ],
+                current_joint_positions=observations[
+                    task_params["robot_name"]["value"]
+                ]["joint_positions"],
+                end_effector_offset=np.array([0, 0, 0.0925]),
+            )
+
+            if my_controller.is_done():
+                print("Done picking and placing")
+            else:
+                print(f"Phase: {my_controller.get_current_event()}")
+
+            # 새로 생성된 articulation_controller를 사용하여 동작 적용
+            articulation_controller = fr3_robot.get_articulation_controller()
+            articulation_controller.apply_action(actions)
