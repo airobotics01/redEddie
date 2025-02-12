@@ -7,9 +7,9 @@
 - **아이작 심(Inaac Sim) 환경 설정 (완료)**  
   - Isaac Sim 설치 및 실행 확인  
   - Isaac Sim 관련 기본 설정 및 Python 연동 환경 구축  
-    [아이작 심 설치](https://docs.google.com/presentation/d/1CxznysS31_eivuw4XQwRi4XAVka0ZGLmdPLkh7UrW18/edit?usp=sharing)
+    [Isaac Sim 환경 설정](https://docs.google.com/presentation/d/1CxznysS31_eivuw4XQwRi4XAVka0ZGLmdPLkh7UrW18/edit?usp=sharing)
   - Isaac Sim WorkFlow 동작 확인  
-    [아이작 심 파이썬 스크립트 이용](https://docs.google.com/presentation/d/1tuupP8WfmBjFYPCMPFUajpIGdrajUykwrJfQsscG4X4/edit?usp=sharing)
+    [파이썬 워크플로우 슬라이드](https://docs.google.com/presentation/d/1tuupP8WfmBjFYPCMPFUajpIGdrajUykwrJfQsscG4X4/edit?usp=sharing), [FR3 파이썬 스크립트 코드](https://github.com/airobotics01/redEddie/blob/main/2_single_dof_velocity_control%20copy%202.py)
 
 ## 2. 파이썬 스크립트와 API 활용
 
