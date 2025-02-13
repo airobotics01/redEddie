@@ -138,27 +138,26 @@ class FR3PickPlaceTask(PickPlace):
 
 
 my_world = World(stage_units_in_meters=1.0)
+
 target_position = np.array([-0.3, 0.6, 0])
-target_position[2] = 0.0515 / 2.0
+target_position[2] = 0.0515 / 2.0  # 목표 위치 설정 (z축은 객체 크기의 절반)
 my_task = FR3PickPlaceTask(target_position=target_position)
 my_world.add_task(my_task)
 my_world.reset()
+my_fr3 = my_world.scene.get_object("my_fr3")
 
-fr3_robot = my_task.set_robot()
-fr3_robot.initialize()
-gripper = fr3_robot.gripper
+task_params = my_world.get_task("FR3_pick_place").get_params()
 
 my_controller = FR3PickPlaceController(
     name="FR3_controller",
-    gripper=gripper,
-    robot_articulation=fr3_robot,
+    gripper=my_fr3.gripper,
+    robot_articulation=my_fr3,
     end_effector_initial_height=0.3,
 )
 
-task_params = my_world.get_task("FR3_pick_place").get_params()
-articulation_controller = fr3_robot.get_articulation_controller()
-reset_needed = False
+articulation_controller = my_fr3.get_articulation_controller()
 
+reset_needed = False
 while simulation_app.is_running():
     my_world.step(render=True)
 
@@ -167,20 +166,8 @@ while simulation_app.is_running():
 
     if my_world.is_playing():
         if reset_needed or my_world.current_time_step_index == 0:
-            my_task.cleanup()
             my_world.reset()
-            fr3_robot = my_task.set_robot()
-            fr3_robot.initialize()
-            gripper = fr3_robot.gripper
-
-            my_controller = FR3PickPlaceController(
-                name="FR3_controller",
-                gripper=gripper,
-                robot_articulation=fr3_robot,
-                end_effector_initial_height=0.3,
-            )
-            my_task.post_reset()
-            articulation_controller = fr3_robot.get_articulation_controller()
+            my_controller.reset()
             reset_needed = False
 
         observations = my_world.get_observations()
