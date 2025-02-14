@@ -9,13 +9,13 @@
   - Isaac Sim 관련 기본 설정 및 Python 연동 환경 구축  
     [Isaac Sim 환경 설정](https://docs.google.com/presentation/d/1CxznysS31_eivuw4XQwRi4XAVka0ZGLmdPLkh7UrW18/edit?usp=sharing)
   - Isaac Sim WorkFlow 동작 확인  
-    [파이썬 워크플로우 슬라이드](https://docs.google.com/presentation/d/1tuupP8WfmBjFYPCMPFUajpIGdrajUykwrJfQsscG4X4/edit?usp=sharing), [FR3 파이썬 스크립트 코드](https://github.com/airobotics01/redEddie/blob/main/2_single_dof_velocity_control%20copy%202.py)
+    [파이썬 워크플로우 슬라이드](https://docs.google.com/presentation/d/1tuupP8WfmBjFYPCMPFUajpIGdrajUykwrJfQsscG4X4/edit?usp=sharing)
 
 ## 2. 파이썬 스크립트와 API 활용
 
 - **파이썬 스크립트와 API 활용**  
   - 파이썬 스크립트를 활용한 로봇 동작 튜토리얼  
-    [FR3 컨트롤 기초 슬라이드](https://docs.google.com/presentation/d/1ImJbjB4ewEsP1DvQoYI8wH1XchSMkLhhVbunT6sv5l8/edit?usp=sharing), [FR3 dc 코드](https://github.com/airobotics01/redEddie/blob/main/3_dynamic_control_basic_usage.py), [FR3 Kinematics Solver 코드](https://github.com/airobotics01/redEddie/blob/main/FR3_EE_pose_control.py), [FR3 Gripper 코드](https://github.com/airobotics01/redEddie/blob/main/FR3_gripper.py)
+    [FR3 컨트롤 기초 슬라이드](https://docs.google.com/presentation/d/1ImJbjB4ewEsP1DvQoYI8wH1XchSMkLhhVbunT6sv5l8/edit?usp=sharing)
   - Franka Research 3 활용 Pick Place Task 생성  
     [FR3_pick_place 슬라이드](https://docs.google.com/presentation/d/1Utw_5IjKaYB-rfhFC_A1U_ccb3WO2LkoUuoIVhKKxfQ/edit?usp=sharing),  [FR3_pick_place.py 코드](https://github.com/airobotics01/redEddie/blob/main/FR3_pick_place.py)
   - Franka Research 3 활용 Stacking Task 생성  
