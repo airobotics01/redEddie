@@ -20,6 +20,7 @@
     [FR3_pick_place 슬라이드](https://docs.google.com/presentation/d/1Utw_5IjKaYB-rfhFC_A1U_ccb3WO2LkoUuoIVhKKxfQ/edit?usp=sharing),  [FR3_pick_place.py 코드](https://github.com/airobotics01/redEddie/blob/main/FR3_pick_place.py)
   - Franka Research 3 활용 Stacking Task 생성  
     [FR3_stacking.py 코드](https://github.com/airobotics01/redEddie/blob/4.5.0/FR3_stacking.py)
+  - Multiple Tasks  
   - Custom task 생성: 사용자 정의 작업 생성  
     - Franka Research 3를 활용하여 새로운 작업 시나리오를 설계하고 테스트
 
