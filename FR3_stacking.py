@@ -303,9 +303,9 @@ my_world = World(stage_units_in_meters=1.0)
 # 큐브 초기 위치 설정
 cube_positions = np.array(
     [
-        [0.5, -0.3, 0.0515 / 2.0],
-        [0.5, 0.0, 0.0515 / 2.0],
-        [0.5, 0.3, 0.0515 / 2.0],
+        [0.5, -0.3, 0.3],
+        [0.5, 0.0, 0.3],
+        [0.5, 0.3, 0.3],
     ]
 )
 cube_positions[:, 2] = 0.0515 / 2.0  # 큐브 위치 설정 (z축은 객체 크기의 절반)
@@ -353,7 +353,7 @@ while simulation_app.is_running():
         actions = my_controller.forward(
             observations=observations,
             end_effector_orientation=None,
-            end_effector_offset=np.array([0, 0, 0]),
+            end_effector_offset=np.array([0, 0.005, 0]),
         )
         articulation_controller.apply_action(actions)
 
