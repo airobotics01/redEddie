@@ -15,8 +15,6 @@ from isaacsim.core.prims import SingleArticulation
 from isaacsim.robot.manipulators.grippers import ParallelGripper
 from isaacsim.robot_motion import motion_generation as mg
 from isaacsim.core.api import tasks
-from isaacsim.core.prims import Articulation
-import isaacsim.core.utils.articulations as articulations_utils
 
 
 class FR3RMPFlowController(mg.MotionPolicyController):
@@ -78,14 +76,14 @@ class FR3PickPlaceController(manipulators_controllers.PickPlaceController):
         if events_dt is None:
             events_dt = [
                 0.005,  # Phase 0
-                0.002,  # Phase 1
+                0.004,  # Phase 1
                 0.1,  # Phase 2
                 0.05,  # Phase 3
-                0.002,  # Phase 4
-                0.005,  # Phase 5
-                0.002,  # Phase 6
+                0.004,  # Phase 4
+                0.004,  # Phase 5
+                0.004,  # Phase 6
                 0.05,  # Phase 7
-                0.002,  # Phase 8
+                0.004,  # Phase 8
                 0.008,  # Phase 9
             ]
         super().__init__(
@@ -164,6 +162,7 @@ my_controller = FR3PickPlaceController(
 articulation_controller = my_fr3.get_articulation_controller()
 
 reset_needed = False
+previous_state = None
 while simulation_app.is_running():
     my_world.step(render=True)
 
@@ -189,12 +188,15 @@ while simulation_app.is_running():
             ],
             end_effector_offset=np.array([0, 0, 0.0925]),
         )
+        articulation_controller.apply_action(actions)
 
         if my_controller.is_done():
-            print("Done picking and placing")
+            current_state = "Done picking and placing"
         else:
-            print(f"Phase: {my_controller.get_current_event()}")
+            current_state = f"Phase: {my_controller.get_current_event()}"
 
-        articulation_controller.apply_action(actions)
+        if current_state != previous_state:
+            print(current_state)
+            previous_state = current_state
 
 simulation_app.close()
