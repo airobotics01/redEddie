@@ -3,20 +3,24 @@ from isaacsim import SimulationApp
 simulation_app = SimulationApp({"headless": False})
 
 import os
+from typing import List, Optional
+import carb
 import numpy as np
 
 from isaacsim.core.api.world import World
-from isaacsim.core.utils.nucleus import get_assets_root_path
-from isaacsim.core.utils.stage import add_reference_to_stage
-from isaacsim.core.utils.extensions import get_extension_path_from_name
-import isaacsim.robot.manipulators.controllers as manipulators_controllers
-from isaacsim.robot.manipulators import SingleManipulator
+from isaacsim.core.api.robots.robot import Robot
+from isaacsim.core.api import tasks
 from isaacsim.core.prims import SingleArticulation
+from isaacsim.core.prims import SingleRigidPrim
+from isaacsim.core.utils.nucleus import get_assets_root_path
+from isaacsim.core.utils.prims import get_prim_at_path
+from isaacsim.core.utils.stage import add_reference_to_stage, get_stage_units
+from isaacsim.core.utils.extensions import get_extension_path_from_name
+
 from isaacsim.robot.manipulators.grippers import ParallelGripper
+from isaacsim.robot.manipulators import SingleManipulator
+import isaacsim.robot.manipulators.controllers as manipulators_controllers
 from isaacsim.robot_motion import motion_generation as mg
-from isaacsim.core.api.tasks import PickPlace
-from isaacsim.core.api.tasks import Stacking
-from omni.isaac.core.utils.types import ArticulationAction
 
 
 class FR3RMPFlowController(mg.MotionPolicyController):
@@ -24,29 +28,19 @@ class FR3RMPFlowController(mg.MotionPolicyController):
         self,
         name: str,
         robot_articulation: SingleArticulation,
-        end_effector_frame_name: str = "fr3_hand",
         physics_dt: float = 1.0 / 60.0,
     ) -> None:
-        mg_extension_path = get_extension_path_from_name(
-            "isaacsim.robot_motion.motion_generation"
+        self.rmp_flow_config = (
+            mg.interface_config_loader.load_supported_motion_policy_config(
+                "FR3", "RMPflow"
+            )
         )
-        rmp_config_dir = os.path.join(
-            mg_extension_path, "motion_policy_configs", "FR3", "rmpflow"
-        )
-        self.rmpflow = mg.lula.motion_policies.RmpFlow(
-            robot_description_path=os.path.join(
-                rmp_config_dir, "fr3_robot_description.yaml"
-            ),
-            urdf_path=os.path.join(
-                mg_extension_path, "motion_policy_configs", "FR3", "fr3.urdf"
-            ),
-            rmpflow_config_path=os.path.join(rmp_config_dir, "fr3_rmpflow_config.yaml"),
-            end_effector_frame_name=end_effector_frame_name,
-            maximum_substep_size=0.00334,
-        )
+        self.rmp_flow = mg.lula.motion_policies.RmpFlow(**self.rmp_flow_config)
+
         self.articulation_rmp = mg.ArticulationMotionPolicy(
-            robot_articulation, self.rmpflow, physics_dt
+            robot_articulation, self.rmp_flow, physics_dt
         )
+
         mg.MotionPolicyController.__init__(
             self, name=name, articulation_motion_policy=self.articulation_rmp
         )
@@ -72,27 +66,26 @@ class FR3PickPlaceController(manipulators_controllers.PickPlaceController):
         name: str,
         gripper: ParallelGripper,
         robot_articulation: SingleArticulation,
-        end_effector_initial_height: float = None,
-        events_dt: list[float] = None,
+        end_effector_initial_height: Optional[float] = None,
+        events_dt: Optional[List[float]] = None,
     ) -> None:
         if events_dt is None:
             events_dt = [
-                0.005,  # Phase 0: 1/0.005 steps
-                0.001,  # Phase 1: 1/0.002 steps
-                0.1,  # Phase 2: 10 steps - waiting phase, can have larger dt
-                0.05,  # Phase 3: 20 steps - gripper closing
-                0.0008,  # Phase 4: 1/0.0008 steps
-                0.005,  # Phase 5: 1/0.005 steps
-                0.0008,  # Phase 6: 1/0.0008 steps
-                0.05,  # Phase 7: 20 steps - gripper opening
-                0.0008,  # Phase 8: 1/0.0008 steps
-                0.008,  # Phase 9: 1/0.008 steps
+                0.005,  # Phase 0
+                0.004,  # Phase 1
+                0.1,  # Phase 2
+                0.05,  # Phase 3
+                0.004,  # Phase 4
+                0.004,  # Phase 5
+                0.004,  # Phase 6
+                0.05,  # Phase 7
+                0.004,  # Phase 8
+                0.008,  # Phase 9
             ]
         super().__init__(
             name=name,
             cspace_controller=FR3RMPFlowController(
-                name=name + "_cspace_controller",
-                robot_articulation=robot_articulation,
+                name=name + "_cspace_controller", robot_articulation=robot_articulation
             ),
             gripper=gripper,
             end_effector_initial_height=end_effector_initial_height,
@@ -100,45 +93,147 @@ class FR3PickPlaceController(manipulators_controllers.PickPlaceController):
         )
 
 
-class FR3PickPlaceTask(PickPlace):
+class FR3(Robot):
+    def __init__(
+        self,
+        prim_path: str,
+        name: str = "my_fr3",
+        usd_path: Optional[str] = None,
+        position: Optional[np.ndarray] = None,
+        orientation: Optional[np.ndarray] = None,
+        end_effector_prim_name: Optional[str] = None,
+        gripper_dof_names: Optional[List[str]] = None,
+        gripper_open_position: Optional[np.ndarray] = None,
+        gripper_closed_position: Optional[np.ndarray] = None,
+        deltas: Optional[np.ndarray] = None,
+    ) -> None:
+        prim = get_prim_at_path(prim_path)
+        self._end_effector = None
+        self._gripper = None
+        self._end_effector_prim_name = end_effector_prim_name
+        if not prim.IsValid():
+            if usd_path:
+                add_reference_to_stage(usd_path=usd_path, prim_path=prim_path)
+            else:
+                assets_root_path = get_assets_root_path()
+                if assets_root_path is None:
+                    carb.log_error("Could not find Isaac Sim assets folder")
+                usd_path = assets_root_path + "/Isaac/Robots/Franka/FR3/fr3.usd"
+                add_reference_to_stage(usd_path=usd_path, prim_path=prim_path)
+            if self._end_effector_prim_name is None:
+                self._end_effector_prim_path = prim_path + "/fr3_rightfinger"
+            else:
+                self._end_effector_prim_path = prim_path + "/" + end_effector_prim_name
+            if gripper_dof_names is None:
+                gripper_dof_names = ["fr3_finger_joint1", "fr3_finger_joint2"]
+            if gripper_open_position is None:
+                gripper_open_position = np.array([0.04, 0.04]) / get_stage_units()
+            if gripper_closed_position is None:
+                gripper_closed_position = np.array([0.0, 0.0])
+        else:
+            if self._end_effector_prim_name is None:
+                self._end_effector_prim_path = prim_path + "/fr3_rightfinger"
+            else:
+                self._end_effector_prim_path = prim_path + "/" + end_effector_prim_name
+            if gripper_dof_names is None:
+                gripper_dof_names = ["fr3_finger_joint1", "fr3_finger_joint2"]
+            if gripper_open_position is None:
+                gripper_open_position = np.array([0.04, 0.04]) / get_stage_units()
+            if gripper_closed_position is None:
+                gripper_closed_position = np.array([0.0, 0.0])
+        super().__init__(
+            prim_path=prim_path,
+            name=name,
+            position=position,
+            orientation=orientation,
+            articulation_controller=None,
+        )
+        if gripper_dof_names is not None:
+            if deltas is None:
+                deltas = np.array([0.04, 0.04]) / get_stage_units()
+            self._gripper = ParallelGripper(
+                end_effector_prim_path=self._end_effector_prim_path,
+                joint_prim_names=gripper_dof_names,
+                joint_opened_positions=gripper_open_position,
+                joint_closed_positions=gripper_closed_position,
+                action_deltas=deltas,
+            )
+        return
+
+    @property
+    def end_effector(self) -> SingleRigidPrim:
+        """[summary]
+
+        Returns:
+            SingleRigidPrim: [description]
+        """
+        return self._end_effector
+
+    @property
+    def gripper(self) -> ParallelGripper:
+        """[summary]
+
+        Returns:
+            ParallelGripper: [description]
+        """
+        return self._gripper
+
+    def initialize(self, physics_sim_view=None) -> None:
+        """[summary]"""
+        super().initialize(physics_sim_view)
+        self._end_effector = SingleRigidPrim(
+            prim_path=self._end_effector_prim_path, name=self.name + "_end_effector"
+        )
+        self._end_effector.initialize(physics_sim_view)
+        self._gripper.initialize(
+            physics_sim_view=physics_sim_view,
+            articulation_apply_action_func=self.apply_action,
+            get_joint_positions_func=self.get_joint_positions,
+            set_joint_positions_func=self.set_joint_positions,
+            dof_names=self.dof_names,
+        )
+        return
+
+    def post_reset(self) -> None:
+        """[summary]"""
+        super().post_reset()
+        self._gripper.post_reset()
+        self._articulation_controller.switch_dof_control_mode(
+            dof_index=self.gripper.joint_dof_indicies[0], mode="position"
+        )
+        self._articulation_controller.switch_dof_control_mode(
+            dof_index=self.gripper.joint_dof_indicies[1], mode="position"
+        )
+        return
+
+
+class FR3PickPlaceTask(tasks.PickPlace):
     def __init__(
         self,
         name: str = "FR3_pick_place",
-        cube_initial_position: np.ndarray = None,
-        cube_initial_orientation: np.ndarray = None,
-        target_position: np.ndarray = None,
-        offset: np.ndarray = None,
+        cube_initial_position: Optional[np.ndarray] = None,
+        cube_initial_orientation: Optional[np.ndarray] = None,
+        target_position: Optional[np.ndarray] = None,
+        cube_size: Optional[np.ndarray] = None,
+        offset: Optional[np.ndarray] = None,
     ) -> None:
         super().__init__(
             name=name,
             cube_initial_position=cube_initial_position,
             cube_initial_orientation=cube_initial_orientation,
             target_position=target_position,
-            cube_size=np.array([0.0515, 0.0515, 0.0515]),
+            cube_size=cube_size,
             offset=offset,
         )
 
     def set_robot(self) -> SingleManipulator:
-        robot_prim_path = "/World/FR3"
-        path_to_robot_usd = get_assets_root_path() + "/Isaac/Robots/Franka/FR3/fr3.usd"
-        add_reference_to_stage(usd_path=path_to_robot_usd, prim_path=robot_prim_path)
-
-        gripper = ParallelGripper(
-            end_effector_prim_path="/World/FR3/fr3_hand",
-            joint_prim_names=["fr3_finger_joint1", "fr3_finger_joint2"],
-            joint_opened_positions=np.array([0.04, 0.04]),
-            joint_closed_positions=np.array([0, 0]),
-            action_deltas=np.array([0.04, 0.04]),
+        fr3_prim_path = "/World/FR3"
+        fr3_robot_name = "my_fr3"
+        fr3_robot = FR3(prim_path=fr3_prim_path, name=fr3_robot_name)
+        joints_default_positions = np.array(
+            [0.0, -0.3, 0.0, -1.8, 0.0, 1.5, 0.7, 0.04, -0.04]
         )
-
-        fr3_robot = SingleManipulator(
-            prim_path=robot_prim_path,
-            end_effector_prim_name="fr3_hand",
-            name="my_fr3",
-            gripper=gripper,
-        )
-        # 4.5.0 버전에서는 아래 코드가 들어가질 않음.
-        # fr3_robot.set_joints_default_state(positions=joints_default_positions)
+        fr3_robot.set_joints_default_state(positions=joints_default_positions)
         return fr3_robot
 
 
@@ -146,93 +241,52 @@ class FR3StackingController(manipulators_controllers.StackingController):
     def __init__(
         self,
         name: str,
-        pick_place_controller: FR3PickPlaceController,
-        picking_order_cube_names: list[str],
+        gripper: ParallelGripper,
+        robot_articulation: SingleArticulation,
+        picking_order_cube_names: List[str],
         robot_observation_name: str,
     ) -> None:
         super().__init__(
-            name,
-            pick_place_controller,
-            picking_order_cube_names,
-            robot_observation_name,
+            name=name,
+            pick_place_controller=FR3PickPlaceController(
+                name=name + "_pick_place_controller",
+                gripper=gripper,
+                robot_articulation=robot_articulation,
+            ),
+            picking_order_cube_names=picking_order_cube_names,
+            robot_observation_name=robot_observation_name,
         )
-        self.pick_place_controller = pick_place_controller
-        self.picking_order_cube_names = picking_order_cube_names
-        self.robot_observation_name = robot_observation_name
-        self.current_index = 0  # 현재 어떤 큐브를 다루고 있는지 인덱스로 관리
+        # self.current_index = 0  # 현재 어떤 큐브를 다루고 있는지 인덱스로 관리
 
-    def get_current_event(self) -> int:
-        return self.current_index
+    # def get_current_event(self) -> int:
+    #     return self.current_index
 
 
-class FR3StackTask(Stacking):
+class FR3StackTask(tasks.Stacking):
     def __init__(
         self,
-        name: str = "FR3_stack_task",
+        name: str = "FR3_stacking",
         cube_initial_positions: np.ndarray = None,
-        cube_initial_orientations: np.ndarray = None,
-        stack_target_positions: list = None,  # ✅ 리스트로 설정
-        cube_size: np.ndarray = None,
-        offset: np.ndarray = None,
+        cube_initial_orientations: Optional[np.ndarray] = None,
+        stack_target_position: Optional[np.ndarray] = None,
+        cube_size: Optional[np.ndarray] = None,
+        offset: Optional[np.ndarray] = None,
     ) -> None:
-        num_cubes = cube_initial_positions.shape[0]  # ✅ 큐브 개수 확인
-
-        # ✅ stack_target_positions이 None이면 자동으로 설정
-        if stack_target_positions is None:
-            base_position = [-0.3, 0.6, 0.0515 / 2.0]  # 첫 번째 큐브의 목표 위치
-            stack_target_positions = [
-                [
-                    base_position[0],
-                    base_position[1],
-                    base_position[2] + i * 0.0515,
-                ]  # 위로 쌓이도록 조정
-                for i in range(num_cubes)
-            ]
-
-        self.stack_target_positions = (
-            stack_target_positions  # ✅ 명확하게 저장 (리스트 형태)
-        )
-
+        if stack_target_position is None:
+            stack_target_position = np.array([0.5, 0.5, 0]) / get_stage_units()
         super().__init__(
             name=name,
             cube_initial_positions=cube_initial_positions,
             cube_initial_orientations=cube_initial_orientations,
-            stack_target_position=None,  # ✅ 개별 저장할 것이므로 None으로 설정
-            cube_size=(
-                np.array([0.0515, 0.0515, 0.0515]) if cube_size is None else cube_size
-            ),
+            stack_target_position=stack_target_position,
+            cube_size=cube_size,
             offset=offset,
         )
 
-    def get_task_objects(self) -> dict:
-        task_objects = super().get_task_objects()
-        # ✅ 각 큐브마다 별도 목표 위치 저장
-        for i, pos in enumerate(self.stack_target_positions):
-            task_objects[f"stack_target_{i}"] = {
-                "position": np.array(pos, dtype=np.float32)
-            }  # ✅ 명확한 dtype 변환 추가
-        return task_objects
-
     def set_robot(self) -> SingleManipulator:
-        robot_prim_path = "/World/FR3"
-        path_to_robot_usd = get_assets_root_path() + "/Isaac/Robots/Franka/FR3/fr3.usd"
-        add_reference_to_stage(usd_path=path_to_robot_usd, prim_path=robot_prim_path)
-
-        gripper = ParallelGripper(
-            end_effector_prim_path="/World/FR3/fr3_hand",
-            joint_prim_names=["fr3_finger_joint1", "fr3_finger_joint2"],
-            joint_opened_positions=np.array([0.04, 0.04]),
-            joint_closed_positions=np.array([0, 0]),
-            action_deltas=np.array([0.04, 0.04]),
-        )
-
-        fr3_robot = SingleManipulator(
-            prim_path=robot_prim_path,
-            name="my_fr3",
-            end_effector_prim_name="fr3_hand",
-            gripper=gripper,
-        )
-
+        fr3_prim_path = "/World/FR3"
+        fr3_robot_name = "my_fr3"
+        fr3_robot = FR3(prim_path=fr3_prim_path, name=fr3_robot_name)
         joints_default_positions = np.array(
             [0.0, -0.3, 0.0, -1.8, 0.0, 1.5, 0.7, 0.04, -0.04]
         )
@@ -245,54 +299,40 @@ my_world = World(stage_units_in_meters=1.0)
 # 큐브 초기 위치 설정
 cube_positions = np.array(
     [
-        [0.1, 0.3, 0.0515 / 2.0],  # 첫 번째 큐브
-        [0.3, 0.3, 0.0515 / 2.0],  # 두 번째 큐브
-        [0.4, 0.5, 0.0515 / 2.0],  # 세 번째 큐브
+        [0.5, -0.3, 0.0515 / 2.0],
+        [0.5, 0.0, 0.0515 / 2.0],
+        [0.5, 0.3, 0.0515 / 2.0],
     ]
 )
+cube_positions[:, 2] = 0.0515 / 2.0  # 큐브 위치 설정 (z축은 객체 크기의 절반)
+stack_target_position = np.array([-0.3, 0.6, 0])
+cube_size = np.array([0.0515, 0.0515, 0.0515])
 
-stack_target_positions = np.array(
-    [
-        [-0.3, 0.6, 0.0515 / 2.0],  # 첫 번째 큐브 목표 위치
-        [-0.3, 0.6, 0.0515 * 1.5],  # 두 번째 큐브 목표 위치
-        [-0.3, 0.6, 0.0515 * 2.5],  # 세 번째 큐브 목표 위치
-    ]
-)
 my_task = FR3StackTask(
     cube_initial_positions=cube_positions,
-    stack_target_positions=stack_target_positions.tolist(),  # ✅ numpy -> list 변환
+    stack_target_position=stack_target_position,
+    cube_size=cube_size,
 )
-
-
 my_world.add_task(my_task)
 my_world.reset()
 
-
-fr3_robot = my_task.set_robot()
-fr3_robot.initialize()
-gripper = fr3_robot.gripper
-
+robot_name = my_task.get_params()["robot_name"]["value"]
+my_fr3 = my_world.scene.get_object(robot_name)
 
 my_controller = FR3StackingController(
     name="FR3_stacking_controller",
-    pick_place_controller=FR3PickPlaceController(
-        name="FR3_pick_place_controller",
-        gripper=gripper,
-        robot_articulation=fr3_robot,
-        end_effector_initial_height=0.3,
-    ),
-    picking_order_cube_names=["cube_1", "cube_2", "cube"],  # 큐브 순서 지정
-    robot_observation_name=my_world.get_task("FR3_stack_task").get_params()[
-        "robot_name"
-    ]["value"],
+    gripper=my_fr3.gripper,
+    robot_articulation=my_fr3,
+    picking_order_cube_names=["cube", "cube_1", "cube_2"],  # 큐브 순서 지정
+    robot_observation_name=my_world.get_task("FR3_stacking").get_params()["robot_name"][
+        "value"
+    ],
 )
+articulation_controller = my_fr3.get_articulation_controller()
 
 
-#! task_params = my_world.get_task("FR3_pick_place").get_params()
-task_params = my_world.get_task("FR3_stack_task").get_params()
-
-articulation_controller = fr3_robot.get_articulation_controller()
 reset_needed = False
+previous_state = None
 while simulation_app.is_running():
     my_world.step(render=True)
 
@@ -301,52 +341,25 @@ while simulation_app.is_running():
 
     if my_world.is_playing():
         if reset_needed or my_world.current_time_step_index == 0:
-            # 기존 작업 정리
-            my_task.cleanup()
             my_world.reset()
+            my_controller.reset()
+            reset_needed = False
 
-            # 새로운 로봇 생성 및 초기화
-            fr3_robot = my_task.set_robot()
-            fr3_robot.initialize()
-            gripper = fr3_robot.gripper
-
-            my_controller = FR3StackingController(
-                name="FR3_stacking_controller",
-                pick_place_controller=FR3PickPlaceController(
-                    name="FR3_pick_place_controller",
-                    gripper=gripper,
-                    robot_articulation=fr3_robot,
-                    end_effector_initial_height=0.3,
-                ),
-                picking_order_cube_names=["cube_2", "cube_1", "cube"],  # 큐브 순서 지정
-                robot_observation_name=task_params["robot_name"]["value"],
-            )
-
-        print("🛠 Checking Stack Target Positions:", stack_target_positions)
         observations = my_world.get_observations()
-
-        # ✅ stack_target_0이 없으면 기본값으로 첫 번째 목표 위치 사용
-        if f"stack_target_0" not in observations:
-            print(
-                "⚠ Warning: 'stack_target' not found in observations. Using first target position as default."
-            )
-            observations["stack_target"] = {
-                "position": np.array(stack_target_positions[0], dtype=np.float32)
-            }
-
         actions = my_controller.forward(
             observations=observations,
-            end_effector_offset=np.array([0, 0, 0.0925]),
+            end_effector_orientation=None,
+            end_effector_offset=np.array([0, 0, 0]),
         )
-
-        observations = my_world.get_observations()
-        print("Observations:", observations)  # ✅ 데이터 확인
+        articulation_controller.apply_action(actions)
 
         if my_controller.is_done():
-            print("Done picking and placing")
+            current_state = "Done stacking"
         else:
-            print(f"Phase: {my_controller.get_current_event()}")
+            current_state = f"Stacking {my_controller.current_index}"
 
-        # 새로 생성된 articulation_controller를 사용하여 동작 적용
-        articulation_controller = fr3_robot.get_articulation_controller()
-        articulation_controller.apply_action(actions)
+        if current_state != previous_state:
+            print(current_state)
+            previous_state = current_state
+
+simulation_app.close()
