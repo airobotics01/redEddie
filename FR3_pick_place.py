@@ -8,13 +8,15 @@ import numpy as np
 from isaacsim.core.api.world import World
 from isaacsim.core.utils.nucleus import get_assets_root_path
 from isaacsim.core.utils.stage import add_reference_to_stage
+from isaacsim.core.utils.extensions import get_extension_path_from_name
 import isaacsim.robot.manipulators.controllers as manipulators_controllers
+from isaacsim.robot.manipulators import SingleManipulator
 from isaacsim.core.prims import SingleArticulation
 from isaacsim.robot.manipulators.grippers import ParallelGripper
 from isaacsim.robot_motion import motion_generation as mg
-from isaacsim.core.utils.extensions import get_extension_path_from_name
-from isaacsim.core.api.tasks import PickPlace
-from isaacsim.robot.manipulators import SingleManipulator
+from isaacsim.core.api import tasks
+from isaacsim.core.prims import Articulation
+import isaacsim.core.utils.articulations as articulations_utils
 
 
 class FR3RMPFlowController(mg.MotionPolicyController):
@@ -97,7 +99,7 @@ class FR3PickPlaceController(manipulators_controllers.PickPlaceController):
         )
 
 
-class FR3PickPlaceTask(PickPlace):
+class FR3PickPlaceTask(tasks.PickPlace):
     def __init__(
         self,
         name: str = "FR3_pick_place",
@@ -134,6 +136,10 @@ class FR3PickPlaceTask(PickPlace):
             name="my_fr3",
             gripper=gripper,
         )
+        joints_default_positions = np.array(
+            [0.0, -0.3, 0.0, -1.8, 0.0, 1.5, 0.7, 0.04, -0.04]
+        )
+        fr3_robot.set_joints_default_state(positions=joints_default_positions)
         return fr3_robot
 
 
