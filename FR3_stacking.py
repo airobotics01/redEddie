@@ -3,6 +3,7 @@ from isaacsim import SimulationApp
 simulation_app = SimulationApp({"headless": False})
 
 import os
+import typing
 from typing import List, Optional
 import carb
 import numpy as np
@@ -16,6 +17,7 @@ from isaacsim.core.utils.nucleus import get_assets_root_path
 from isaacsim.core.utils.prims import get_prim_at_path
 from isaacsim.core.utils.stage import add_reference_to_stage, get_stage_units
 from isaacsim.core.utils.extensions import get_extension_path_from_name
+from isaacsim.core.utils.types import ArticulationAction
 
 from isaacsim.robot.manipulators.grippers import ParallelGripper
 from isaacsim.robot.manipulators import SingleManipulator
@@ -30,23 +32,12 @@ class FR3RMPFlowController(mg.MotionPolicyController):
         robot_articulation: SingleArticulation,
         physics_dt: float = 1.0 / 60.0,
     ) -> None:
-        mg_extension_path = get_extension_path_from_name(
-            "isaacsim.robot_motion.motion_generation"
+        self.rmp_flow_config = (
+            mg.interface_config_loader.load_supported_motion_policy_config(
+                "FR3", "RMPflow"
+            )
         )
-        rmp_config_dir = os.path.join(
-            mg_extension_path, "motion_policy_configs", "FR3", "rmpflow"
-        )
-        self.rmp_flow = mg.lula.motion_policies.RmpFlow(
-            robot_description_path=os.path.join(
-                rmp_config_dir, "fr3_robot_description.yaml"
-            ),
-            urdf_path=os.path.join(
-                mg_extension_path, "motion_policy_configs", "FR3", "fr3.urdf"
-            ),
-            rmpflow_config_path=os.path.join(rmp_config_dir, "fr3_rmpflow_config.yaml"),
-            end_effector_frame_name=end_effector_frame_name,
-            maximum_substep_size=0.00334,
-        )
+        self.rmp_flow = mg.lula.motion_policies.RmpFlow(**self.rmp_flow_config)
 
         self.articulation_rmp = mg.ArticulationMotionPolicy(
             robot_articulation, self.rmp_flow, physics_dt
@@ -248,26 +239,101 @@ class FR3PickPlaceTask(tasks.PickPlace):
         return fr3_robot
 
 
+class FR3StackingController(manipulators_controllers.StackingController):
+    def __init__(
+        self,
+        name: str,
+        gripper: ParallelGripper,
+        robot_articulation: SingleArticulation,
+        picking_order_cube_names: List[str],
+        robot_observation_name: str,
+    ) -> None:
+        super().__init__(
+            name=name,
+            pick_place_controller=FR3PickPlaceController(
+                name=name + "_pick_place_controller",
+                gripper=gripper,
+                robot_articulation=robot_articulation,
+            ),
+            picking_order_cube_names=picking_order_cube_names,
+            robot_observation_name=robot_observation_name,
+        )
+
+    def get_current_event(self) -> int:
+        _current_phase = self._pick_place_controller.get_current_event()
+        _current_cube_name = self._picking_order_cube_names[self._current_cube]
+
+        return _current_cube_name, _current_phase
+
+
+class FR3StackTask(tasks.Stacking):
+    def __init__(
+        self,
+        name: str = "FR3_stacking",
+        cube_initial_positions: np.ndarray = None,
+        cube_initial_orientations: Optional[np.ndarray] = None,
+        stack_target_position: Optional[np.ndarray] = None,
+        cube_size: Optional[np.ndarray] = None,
+        offset: Optional[np.ndarray] = None,
+    ) -> None:
+        if stack_target_position is None:
+            stack_target_position = np.array([0.5, 0.5, 0]) / get_stage_units()
+        super().__init__(
+            name=name,
+            cube_initial_positions=cube_initial_positions,
+            cube_initial_orientations=cube_initial_orientations,
+            stack_target_position=stack_target_position,
+            cube_size=cube_size,
+            offset=offset,
+        )
+
+    def set_robot(self) -> SingleManipulator:
+        fr3_prim_path = "/World/FR3"
+        fr3_robot_name = "my_fr3"
+        fr3_robot = FR3(prim_path=fr3_prim_path, name=fr3_robot_name)
+        joints_default_positions = np.array(
+            [0.0, -0.3, 0.0, -1.8, 0.0, 1.5, 0.7, 0.04, -0.04]
+        )
+        fr3_robot.set_joints_default_state(positions=joints_default_positions)
+        return fr3_robot
+
+
 my_world = World(stage_units_in_meters=1.0)
 
-target_position = np.array([-0.3, 0.6, 0])
-target_position[2] = 0.0515 / 2.0  # 목표 위치 설정 (z축은 객체 크기의 절반)
-cube_size = np.array([0.0715, 0.0515, 0.0515])
-my_task = FR3PickPlaceTask(target_position=target_position, cube_size=cube_size)
+# 큐브 초기 위치 설정
+cube_positions = np.array(
+    [
+        [0.5, -0.3, 0.0515 / 2.0],
+        [0.5, 0.0, 0.0515 / 2.0],
+        [0.5, 0.3, 0.0515 / 2.0],
+    ]
+)
+cube_positions[:, 2] = 0.0515 / 2.0  # 큐브 위치 설정 (z축은 객체 크기의 절반)
+stack_target_position = np.array([-0.3, 0.6, 0])
+cube_size = np.array([0.0515, 0.0515, 0.0515])
+
+my_task = FR3StackTask(
+    cube_initial_positions=cube_positions,
+    stack_target_position=stack_target_position,
+    cube_size=cube_size,
+)
 my_world.add_task(my_task)
 my_world.reset()
-my_fr3 = my_world.scene.get_object("my_fr3")
 
-task_params = my_world.get_task("FR3_pick_place").get_params()
+robot_name = my_task.get_params()["robot_name"]["value"]
+my_fr3 = my_world.scene.get_object(robot_name)
 
-my_controller = FR3PickPlaceController(
-    name="FR3_controller",
+my_controller = FR3StackingController(
+    name="FR3_stacking_controller",
     gripper=my_fr3.gripper,
     robot_articulation=my_fr3,
-    end_effector_initial_height=0.3,
+    picking_order_cube_names=["cube_1", "cube", "cube_2"],  # 큐브 순서 지정
+    robot_observation_name=my_world.get_task("FR3_stacking").get_params()["robot_name"][
+        "value"
+    ],
 )
-
 articulation_controller = my_fr3.get_articulation_controller()
+
 
 reset_needed = False
 previous_state = None
@@ -285,26 +351,19 @@ while simulation_app.is_running():
 
         observations = my_world.get_observations()
         actions = my_controller.forward(
-            picking_position=observations[task_params["cube_name"]["value"]][
-                "position"
-            ],
-            placing_position=observations[task_params["cube_name"]["value"]][
-                "target_position"
-            ],
-            current_joint_positions=observations[task_params["robot_name"]["value"]][
-                "joint_positions"
-            ],
-            end_effector_offset=np.array([0, 0.005, 0]),
+            observations=observations,
+            end_effector_orientation=None,
+            end_effector_offset=np.array([0, 0, 0]),
         )
+        articulation_controller.apply_action(actions)
 
         if my_controller.is_done():
-            current_state = "Done picking and placing"
+            current_state = "Done stacking"
         else:
-            current_state = f"Phase: {my_controller.get_current_event()}"
+            current_state = f"Stacking {my_controller.get_current_event()}"
 
         if current_state != previous_state:
             print(current_state)
             previous_state = current_state
-        articulation_controller.apply_action(actions)
 
 simulation_app.close()
