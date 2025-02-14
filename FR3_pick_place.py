@@ -28,32 +28,25 @@ class FR3RMPFlowController(mg.MotionPolicyController):
         self,
         name: str,
         robot_articulation: SingleArticulation,
-        end_effector_frame_name: str = "fr3_hand",
         physics_dt: float = 1.0 / 60.0,
     ) -> None:
-        # mg_extension_path = get_extension_path_from_name(
-        #     "isaacsim.robot_motion.motion_generation"
-        # )
-        # rmp_config_dir = os.path.join(
-        #     mg_extension_path, "motion_policy_configs", "FR3", "rmpflow"
-        # )
-        # self.rmp_flow = mg.lula.motion_policies.RmpFlow(
-        #     robot_description_path=os.path.join(
-        #         rmp_config_dir, "fr3_robot_description.yaml"
-        #     ),
-        #     urdf_path=os.path.join(
-        #         mg_extension_path, "motion_policy_configs", "FR3", "fr3.urdf"
-        #     ),
-        #     rmpflow_config_path=os.path.join(rmp_config_dir, "fr3_rmpflow_config.yaml"),
-        #     end_effector_frame_name=end_effector_frame_name,
-        #     maximum_substep_size=0.00334,
-        # )
-        self.rmp_flow_config = (
-            mg.interface_config_loader.load_supported_motion_policy_config(
-                "FR3", "RMPflow"
-            )
+        mg_extension_path = get_extension_path_from_name(
+            "isaacsim.robot_motion.motion_generation"
         )
-        self.rmp_flow = mg.lula.motion_policies.RmpFlow(**self.rmp_flow_config)
+        rmp_config_dir = os.path.join(
+            mg_extension_path, "motion_policy_configs", "FR3", "rmpflow"
+        )
+        self.rmp_flow = mg.lula.motion_policies.RmpFlow(
+            robot_description_path=os.path.join(
+                rmp_config_dir, "fr3_robot_description.yaml"
+            ),
+            urdf_path=os.path.join(
+                mg_extension_path, "motion_policy_configs", "FR3", "fr3.urdf"
+            ),
+            rmpflow_config_path=os.path.join(rmp_config_dir, "fr3_rmpflow_config.yaml"),
+            end_effector_frame_name=end_effector_frame_name,
+            maximum_substep_size=0.00334,
+        )
 
         self.articulation_rmp = mg.ArticulationMotionPolicy(
             robot_articulation, self.rmp_flow, physics_dt
