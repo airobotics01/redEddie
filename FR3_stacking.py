@@ -3,6 +3,7 @@ from isaacsim import SimulationApp
 simulation_app = SimulationApp({"headless": False})
 
 import os
+import typing
 from typing import List, Optional
 import carb
 import numpy as np
@@ -16,6 +17,7 @@ from isaacsim.core.utils.nucleus import get_assets_root_path
 from isaacsim.core.utils.prims import get_prim_at_path
 from isaacsim.core.utils.stage import add_reference_to_stage, get_stage_units
 from isaacsim.core.utils.extensions import get_extension_path_from_name
+from isaacsim.core.utils.types import ArticulationAction
 
 from isaacsim.robot.manipulators.grippers import ParallelGripper
 from isaacsim.robot.manipulators import SingleManipulator
@@ -256,10 +258,12 @@ class FR3StackingController(manipulators_controllers.StackingController):
             picking_order_cube_names=picking_order_cube_names,
             robot_observation_name=robot_observation_name,
         )
-        # self.current_index = 0  # 현재 어떤 큐브를 다루고 있는지 인덱스로 관리
 
-    # def get_current_event(self) -> int:
-    #     return self.current_index
+    def get_current_event(self) -> int:
+        _current_phase = self._pick_place_controller.get_current_event()
+        _current_cube_name = self._picking_order_cube_names[self._current_cube]
+
+        return _current_cube_name, _current_phase
 
 
 class FR3StackTask(tasks.Stacking):
@@ -323,7 +327,7 @@ my_controller = FR3StackingController(
     name="FR3_stacking_controller",
     gripper=my_fr3.gripper,
     robot_articulation=my_fr3,
-    picking_order_cube_names=["cube", "cube_1", "cube_2"],  # 큐브 순서 지정
+    picking_order_cube_names=["cube_1", "cube", "cube_2"],  # 큐브 순서 지정
     robot_observation_name=my_world.get_task("FR3_stacking").get_params()["robot_name"][
         "value"
     ],
@@ -356,7 +360,7 @@ while simulation_app.is_running():
         if my_controller.is_done():
             current_state = "Done stacking"
         else:
-            current_state = f"Stacking {my_controller.current_index}"
+            current_state = f"Stacking {my_controller.get_current_event()}"
 
         if current_state != previous_state:
             print(current_state)
