@@ -164,50 +164,6 @@ class FR3StackingController(manipulators_controllers.StackingController):
     def get_current_event(self) -> int:
         return self.current_index
 
-    def forward(
-        self,
-        observations: dict,
-        end_effector_orientation: np.ndarray = None,
-        end_effector_offset: np.ndarray = None,
-    ) -> ArticulationAction:
-        if self.current_index >= len(self.picking_order_cube_names):
-            return ArticulationAction()  # 모든 큐브가 스택되었으면 종료
-
-        # 현재 목표하는 큐브 가져오기
-        cube_name = self.picking_order_cube_names[self.current_index]
-        if cube_name not in observations:
-            raise ValueError(f"Cube {cube_name} not found in observations")
-
-        picking_position = observations[cube_name]["position"]
-        placing_position = observations["stack_target"]["position"]
-        placing_position[2] += self.current_index * 0.05  # 스택 높이 증가
-
-        action = self.pick_place_controller.forward(
-            picking_position=picking_position,
-            placing_position=placing_position,
-            current_joint_positions=observations[self.robot_observation_name][
-                "joint_positions"
-            ],
-            end_effector_offset=end_effector_offset,
-            end_effector_orientation=end_effector_orientation,
-        )
-
-        if self.pick_place_controller.is_done():
-            self.current_index += 1  # 다음 큐브로 이동
-            self.pick_place_controller.reset()
-
-        return action
-
-    def is_done(self) -> bool:
-        return self.current_index >= len(self.picking_order_cube_names)
-
-
-def reset(self):
-    print(f"🔄 Resetting Controller. Current Index: {self.current_index}")
-    super().reset()
-    self.current_index = 0
-    self.pick_place_controller.reset()
-
 
 class FR3StackTask(Stacking):
     def __init__(
