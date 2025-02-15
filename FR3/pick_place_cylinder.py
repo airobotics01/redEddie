@@ -14,6 +14,7 @@ simulation_app = SimulationApp({"headless": False})
 import numpy as np
 from typing import List, Optional
 from isaacsim.core.api import World
+from isaacsim.core.api.scenes.scene import Scene
 
 from controllers.pick_place_controller import PickPlaceController
 from tasks.pick_place import PickPlace
@@ -22,7 +23,7 @@ from tasks.pick_place import PickPlace
 class PickPlaceCylinder(PickPlace):
     def __init__(
         self,
-        name: str = "cylinder_pick_place",
+        name: str = "pick_place_cylinder",
         cylinder_initial_position: Optional[np.ndarray] = None,
         cylinder_initial_orientation: Optional[np.ndarray] = None,
         target_position: Optional[np.ndarray] = None,
@@ -37,6 +38,9 @@ class PickPlaceCylinder(PickPlace):
             cube_size=cylinder_size,
             offset=offset,
         )
+
+    def set_up_scene(self, scene: Scene) -> None:
+        super().set_up_scene(scene)
 
 
 my_world = World(stage_units_in_meters=1.0)
