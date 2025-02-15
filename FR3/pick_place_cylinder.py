@@ -15,6 +15,9 @@ import numpy as np
 from typing import List, Optional
 from isaacsim.core.api import World
 from isaacsim.core.api.scenes.scene import Scene
+from isaacsim.core.utils.string import find_unique_string_name
+from isaacsim.core.api.objects import DynamicCuboid, DynamicCylinder
+from isaacsim.core.utils.prims import is_prim_path_valid
 
 from controllers.pick_place_controller import PickPlaceController
 from tasks.pick_place import PickPlace
@@ -40,7 +43,31 @@ class PickPlaceCylinder(PickPlace):
         )
 
     def set_up_scene(self, scene: Scene) -> None:
-        super().set_up_scene(scene)
+        self._scene = scene
+        scene.add_default_ground_plane()
+        cube_prim_path = find_unique_string_name(
+            initial_name="/World/Cube", is_unique_fn=lambda x: not is_prim_path_valid(x)
+        )
+        cube_name = find_unique_string_name(
+            initial_name="cube", is_unique_fn=lambda x: not self.scene.object_exists(x)
+        )
+        self._cube = scene.add(
+            DynamicCuboid(
+                name=cube_name,
+                position=self._cube_initial_position,
+                orientation=self._cube_initial_orientation,
+                prim_path=cube_prim_path,
+                scale=self._cube_size,
+                size=1.0,
+                color=np.array([0, 0, 1]),
+            )
+        )
+        self._task_objects[self._cube.name] = self._cube
+        self._robot = self.set_robot()
+        scene.add(self._robot)
+        self._task_objects[self._robot.name] = self._robot
+        self._move_task_objects_to_their_frame()
+        return
 
 
 my_world = World(stage_units_in_meters=1.0)
