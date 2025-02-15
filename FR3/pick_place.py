@@ -10,7 +10,7 @@ from controllers.pick_place_controller import PickPlaceController
 from tasks.pick_place import PickPlace
 
 FINGER_LENGTH = 0.05  # 50mm in meters
-MARGIN = 0.02  # 10mm in meters
+MARGIN = 0.02
 
 my_world = World(stage_units_in_meters=1.0)
 cube_size = np.array([0.17, 0.0515, 0.185])  # np.array([0.0515, 0.0515, 0.0515])
