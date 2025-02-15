@@ -16,6 +16,7 @@
 - **파이썬 스크립트와 API 활용**  
   [FR3 컨트롤 기초 슬라이드](https://docs.google.com/presentation/d/1ImJbjB4ewEsP1DvQoYI8wH1XchSMkLhhVbunT6sv5l8/edit?usp=sharing)  
   [FR3_pick_place 슬라이드](https://docs.google.com/presentation/d/1Utw_5IjKaYB-rfhFC_A1U_ccb3WO2LkoUuoIVhKKxfQ/edit?usp=sharing)  
+  *원래 코드가 잘 안 되어서 클래스 별로 파일을 나누고 FR3폴더에 정리함
   
   - [x] 파이썬 스크립트를 활용한 로봇 동작 튜토리얼  
     [franka_gripper.py](https://github.com/airobotics01/redEddie/blob/main/FR3/franka_gripper.py), [follow_target_with_ik.py](https://github.com/airobotics01/redEddie/blob/main/FR3/follow_target_with_ik.py), [follow_target_with_rmpflow.py](https://github.com/airobotics01/redEddie/blob/main/FR3/follow_target_with_rmpflow.py)
