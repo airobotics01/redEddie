@@ -1,24 +1,24 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION. All rights reserved.
-#
-# NVIDIA CORPORATION and its licensors retain all intellectual property
-# and proprietary rights in and to this software, related documentation
-# and any modifications thereto. Any use, reproduction, disclosure or
-# distribution of this software and related documentation without an express
-# license agreement from NVIDIA CORPORATION is strictly prohibited.
-#
-
 from isaacsim import SimulationApp
 
 simulation_app = SimulationApp({"headless": False})
 
 import numpy as np
 from isaacsim.core.api import World
+from isaacsim.core.utils.stage import get_stage_units
 
 from controllers.pick_place_controller import PickPlaceController
 from tasks.pick_place import PickPlace
 
+FINGER_LENGTH = 0.05  # 50mm in meters
+MARGIN = 0.02  # 10mm in meters
+
 my_world = World(stage_units_in_meters=1.0)
-cube_size = np.array([0.17, 0.0515, 0.0515])  # np.array([0.0515, 0.0515, 0.0515])
+cube_size = np.array([0.17, 0.0515, 0.1515])  # np.array([0.0515, 0.0515, 0.0515])
+
+if (cube_size[2] / 2) < FINGER_LENGTH - MARGIN:
+    end_effector_offset = np.array([0, 0, 0])
+else:
+    end_effector_offset = np.array([0, 0, (cube_size[2] / 2) - FINGER_LENGTH + MARGIN])
 my_task = PickPlace(cube_size=cube_size)
 my_world.add_task(my_task)
 my_world.reset()
@@ -54,7 +54,7 @@ while simulation_app.is_running():
             current_joint_positions=observations[task_params["robot_name"]["value"]][
                 "joint_positions"
             ],
-            end_effector_offset=np.array([0, 0.005, 0]),
+            end_effector_offset=end_effector_offset,
         )
         if my_controller.is_done():
             current_state = "Done picking and placing"
