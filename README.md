@@ -26,9 +26,10 @@
   - [ ] [Stacking Decider](https://docs.isaacsim.omniverse.nvidia.com/latest/cortex_tutorials/tutorial_cortex_4_franka_block_stacking.html#)
   - [x] [Multiple Tasks](https://docs.isaacsim.omniverse.nvidia.com/latest/core_api_tutorials/tutorial_core_multiple_tasks.html#)  
         [multitpe_tasks.py](https://github.com/airobotics01/redEddie/blob/main/FR3/multiple_tasks.py)
-  - [x] Custom task 생성
-    - Franka Research 3를 활용하여 원통형 물체에 대해 PickPlace  
-      [pick_place_cylinder.py](https://github.com/airobotics01/redEddie/blob/main/FR3/pick_place_cylinder.py)
+  - Custom task 생성
+    - [x] Franka Research 3를 활용하여 원통형 물체에 대해 PickPlace  
+      [pick_place_cylinder.py](https://github.com/airobotics01/redEddie/blob/main/FR3/pick_place_cylinder.py)  
+    - [ ] 여러 종류의 물체를 생성하고 PickPlace
 
 
 ## 기타
