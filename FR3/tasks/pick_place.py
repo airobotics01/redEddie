@@ -54,4 +54,11 @@ class PickPlace(tasks.PickPlace):
             initial_name="my_fr3",
             is_unique_fn=lambda x: not self.scene.object_exists(x),
         )
-        return FR3(prim_path=franka_prim_path, name=franka_robot_name)
+        gripper_closed_position = self._cube_size[1] / 2
+        deltas = np.array([0.4, 0.4]) - gripper_closed_position
+        return FR3(
+            prim_path=franka_prim_path,
+            name=franka_robot_name,
+            gripper_closed_position=gripper_closed_position,
+            deltas=deltas,
+        )
