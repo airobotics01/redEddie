@@ -1,12 +1,3 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION. All rights reserved.
-#
-# NVIDIA CORPORATION and its licensors retain all intellectual property
-# and proprietary rights in and to this software, related documentation
-# and any modifications thereto. Any use, reproduction, disclosure or
-# distribution of this software and related documentation without an express
-# license agreement from NVIDIA CORPORATION is strictly prohibited.
-#
-
 from isaacsim import SimulationApp
 
 simulation_app = SimulationApp({"headless": False})
@@ -33,6 +24,10 @@ class PickPlaceCylinder(PickPlace):
         cylinder_size: Optional[np.ndarray] = None,
         offset: Optional[np.ndarray] = None,
     ):
+        if cylinder_size is None:
+            cylinder_size = np.array(
+                [0.06, 0.06, 0.12]
+            )  # np.array([지름, 지름(무효), 높이])
         super().__init__(
             name=name,
             cube_initial_position=cylinder_initial_position,
@@ -72,9 +67,23 @@ class PickPlaceCylinder(PickPlace):
         return
 
 
+FINGER_LENGTH = 0.05  # 50mm in meters
+MARGIN = 0.03
+
 my_world = World(stage_units_in_meters=1.0)
-cylinder_size = np.array([0.08, 0.08, 0.2])  # np.array([지름, 지름(무효), 높이])
-my_task = PickPlaceCylinder(cylinder_size=cylinder_size)
+cylinder_size = np.array([0.06, 0.06, 0.12])  # np.array([지름, 지름(무효), 높이])
+
+orientation = [0.7071, 0, 0.7071, 0]  # x축으로 90도 회전
+if orientation is not None:
+    hs_offset = 0
+elif cylinder_size[2] > FINGER_LENGTH:
+    hs_offset = cylinder_size[2] / 2 - FINGER_LENGTH + MARGIN
+
+
+my_world = World(stage_units_in_meters=1.0)
+my_task = PickPlaceCylinder(
+    cylinder_size=cylinder_size, cylinder_initial_orientation=orientation
+)
 my_world.add_task(my_task)
 my_world.reset()
 task_params = my_task.get_params()
@@ -83,6 +92,7 @@ my_controller = PickPlaceController(
     name="pick_place_controller",
     gripper=my_fr3.gripper,
     robot_articulation=my_fr3,
+    lift_offset=hs_offset,
 )
 articulation_controller = my_fr3.get_articulation_controller()
 
@@ -109,7 +119,6 @@ while simulation_app.is_running():
             current_joint_positions=observations[task_params["robot_name"]["value"]][
                 "joint_positions"
             ],
-            end_effector_offset=np.array([0, 0.005, 0]),
         )
         if my_controller.is_done():
             current_state = "Done picking and placing"
