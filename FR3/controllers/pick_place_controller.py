@@ -33,6 +33,7 @@ class PickPlaceController(manipulators_controllers.PickPlaceController):
         robot_articulation: SingleArticulation,
         end_effector_initial_height: Optional[float] = None,
         events_dt: Optional[List[float]] = None,
+        lift_offset: Optional[float] = 0.05,
     ) -> None:
         if events_dt is None:
             events_dt = [0.008, 0.005, 1, 0.1, 0.05, 0.05, 0.0025, 1, 0.008, 0.08]
@@ -46,4 +47,9 @@ class PickPlaceController(manipulators_controllers.PickPlaceController):
             end_effector_initial_height=end_effector_initial_height,
             events_dt=events_dt,
         )
+        self._lift_offset = lift_offset
         return
+
+    def _get_target_hs(self, target_height):
+        h = super()._get_target_hs(target_height)
+        return h + self._lift_offset

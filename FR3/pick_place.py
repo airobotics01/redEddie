@@ -13,12 +13,11 @@ FINGER_LENGTH = 0.05  # 50mm in meters
 MARGIN = 0.02  # 10mm in meters
 
 my_world = World(stage_units_in_meters=1.0)
-cube_size = np.array([0.17, 0.0515, 0.1515])  # np.array([0.0515, 0.0515, 0.0515])
+cube_size = np.array([0.17, 0.0515, 0.185])  # np.array([0.0515, 0.0515, 0.0515])
 
-if (cube_size[2] / 2) < FINGER_LENGTH - MARGIN:
-    end_effector_offset = np.array([0, 0, 0])
-else:
-    end_effector_offset = np.array([0, 0, (cube_size[2] / 2) - FINGER_LENGTH + MARGIN])
+if cube_size[2] > FINGER_LENGTH:
+    hs_offset = cube_size[2] / 2 - FINGER_LENGTH + MARGIN
+
 my_task = PickPlace(cube_size=cube_size)
 my_world.add_task(my_task)
 my_world.reset()
@@ -28,6 +27,7 @@ my_controller = PickPlaceController(
     name="pick_place_controller",
     gripper=my_fr3.gripper,
     robot_articulation=my_fr3,
+    lift_offset=hs_offset,
 )
 articulation_controller = my_fr3.get_articulation_controller()
 
@@ -54,7 +54,6 @@ while simulation_app.is_running():
             current_joint_positions=observations[task_params["robot_name"]["value"]][
                 "joint_positions"
             ],
-            end_effector_offset=end_effector_offset,
         )
         if my_controller.is_done():
             current_state = "Done picking and placing"
