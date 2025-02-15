@@ -45,21 +45,23 @@ class PickPlaceCylinder(PickPlace):
     def set_up_scene(self, scene: Scene) -> None:
         self._scene = scene
         scene.add_default_ground_plane()
-        cube_prim_path = find_unique_string_name(
-            initial_name="/World/Cube", is_unique_fn=lambda x: not is_prim_path_valid(x)
+        cylinder_prim_path = find_unique_string_name(
+            initial_name="/World/Cylinder",
+            is_unique_fn=lambda x: not is_prim_path_valid(x),
         )
-        cube_name = find_unique_string_name(
-            initial_name="cube", is_unique_fn=lambda x: not self.scene.object_exists(x)
+        cylinder_name = find_unique_string_name(
+            initial_name="cylinder",
+            is_unique_fn=lambda x: not self.scene.object_exists(x),
         )
         self._cube = scene.add(
-            DynamicCuboid(
-                name=cube_name,
+            DynamicCylinder(
+                prim_path=cylinder_prim_path,
+                name=cylinder_name,
                 position=self._cube_initial_position,
                 orientation=self._cube_initial_orientation,
-                prim_path=cube_prim_path,
-                scale=self._cube_size,
-                size=1.0,
-                color=np.array([0, 0, 1]),
+                radius=self._cube_size[0] / 2,  # 지름의 절반: 반지름
+                height=self._cube_size[2],
+                color=np.array([0.1, 0.4, 0.3]),
             )
         )
         self._task_objects[self._cube.name] = self._cube
@@ -71,7 +73,7 @@ class PickPlaceCylinder(PickPlace):
 
 
 my_world = World(stage_units_in_meters=1.0)
-cylinder_size = np.array([0.17, 0.0515, 0.0515])  # np.array([지름, 지름(무효), 높이])
+cylinder_size = np.array([0.08, 0.08, 0.2])  # np.array([지름, 지름(무효), 높이])
 my_task = PickPlaceCylinder(cylinder_size=cylinder_size)
 my_world.add_task(my_task)
 my_world.reset()
