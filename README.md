@@ -27,7 +27,7 @@
   - [x] [Multiple Tasks](https://docs.isaacsim.omniverse.nvidia.com/latest/core_api_tutorials/tutorial_core_multiple_tasks.html#)  
         [multitpe_tasks.py](https://github.com/airobotics01/redEddie/blob/main/FR3/multiple_tasks.py)
   - [x] Custom task 생성
-    - Franka Research 3를 활용하여 원통형 물체에 대해 PickPlace
+    - Franka Research 3를 활용하여 원통형 물체에 대해 PickPlace  
       [pick_place_cylinder.py](https://github.com/airobotics01/redEddie/blob/main/FR3/pick_place_cylinder.py)
 
 
