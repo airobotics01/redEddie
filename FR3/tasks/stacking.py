@@ -22,6 +22,10 @@ class Stacking(BaseStacking):
     def __init__(
         self,
         name: str = "fr3_stacking",
+        cube_initial_positions: np.ndarray = np.array(
+            [[0.3, 0.3, 0.3], [0.3, -0.3, 0.3]]
+        )
+        / get_stage_units(),
         target_position: Optional[np.ndarray] = None,
         cube_size: Optional[np.ndarray] = None,
         offset: Optional[np.ndarray] = None,
@@ -31,8 +35,7 @@ class Stacking(BaseStacking):
         BaseStacking.__init__(
             self,
             name=name,
-            cube_initial_positions=np.array([[0.3, 0.3, 0.3], [0.3, -0.3, 0.3]])
-            / get_stage_units(),
+            cube_initial_positions=cube_initial_positions,
             cube_initial_orientations=None,
             stack_target_position=target_position,
             cube_size=cube_size,
