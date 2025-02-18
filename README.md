@@ -28,14 +28,14 @@
     - **Pick Place Task** 생성  
       - [🐍📝FR3_pick_place.py](https://github.com/airobotics01/redEddie/blob/main/FR3/pick_place.py)  
       - [🎞️ 실습](https://youtu.be/a2e3Q8sN_EA)
-      - [📄 관련 문서](https://docs.isaacsim.omniverse.nvidia.com/latest/core_api_tutorials/tutorial_core_adding_manipulator.html#)  
+      - [📄 관련 문서 (🏠︎ > Python Scripting > Core API Tutorial Series > Adding a Manipulator Robot)](https://docs.isaacsim.omniverse.nvidia.com/latest/core_api_tutorials/tutorial_core_adding_manipulator.html#)  
     - **Stacking Task** 생성  
       - [🐍📝FR3_stacking.py](https://github.com/airobotics01/redEddie/blob/4.5.0/FR3/staking.py)  
       - [🎞️ 실습](https://youtu.be/7UR9dSv3HA4)    
 
   - [x] **Multiple Tasks**  
     - [🐍📝multiple_tasks.py](https://github.com/airobotics01/redEddie/blob/main/FR3/multiple_tasks.py)  
-    - [📄 관련 문서](https://docs.isaacsim.omniverse.nvidia.com/latest/core_api_tutorials/tutorial_core_multiple_tasks.html#)  
+    - [📄 관련 문서 (🏠︎ > Python Scripting > Core API Tutorial Series > Multiple Tasks)](https://docs.isaacsim.omniverse.nvidia.com/latest/core_api_tutorials/tutorial_core_multiple_tasks.html#)  
 
   - **Custom Task 생성**  
     - [x] Franka Research 3를 활용하여 원통형 물체에 대해 PickPlace  
@@ -44,6 +44,9 @@
     - [ ] 여러 종류의 물체를 생성하고 PickPlace 작업 구현  
 
 ## 3. isaacsim.cortex.framework
+
+Isaac Sim에서 Cortex는 협업 로봇 시스템을 위한 의사 결정 프레임워크입니다. Isaac Sim의 로보틱스 도구들을 하나의 일관된 협업 로봇 시스템으로 통합합니다. 
+ [📄관련 문서 (🏠︎ > Digital Twin > Isaac Cortex)](https://docs.isaacsim.omniverse.nvidia.com/latest/cortex_tutorials/tutorial_cortex_1_overview.html#isaac-cortex-overview)
 
 - [ ] [Stacking Decider](https://docs.isaacsim.omniverse.nvidia.com/latest/cortex_tutorials/tutorial_cortex_4_franka_block_stacking.html#)
 
