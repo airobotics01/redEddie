@@ -7,40 +7,40 @@
 - **아이작 심(Isaac Sim) 환경 설정**  
   - [x] Isaac Sim 설치 및 실행 확인  
   - [x] Isaac Sim 관련 기본 설정 및 Python 연동 환경 구축  
-    [Isaac Sim 환경 설정](https://docs.google.com/presentation/d/1CxznysS31_eivuw4XQwRi4XAVka0ZGLmdPLkh7UrW18/edit?usp=sharing)
+    [🗣️ Isaac Sim 환경 설정](https://docs.google.com/presentation/d/1CxznysS31_eivuw4XQwRi4XAVka0ZGLmdPLkh7UrW18/edit?usp=sharing)
   - [x] Isaac Sim WorkFlow 동작 확인  
-    [파이썬 워크플로우 슬라이드](https://docs.google.com/presentation/d/1tuupP8WfmBjFYPCMPFUajpIGdrajUykwrJfQsscG4X4/edit?usp=sharing)
+    [🗣️ 파이썬 워크플로우 슬라이드](https://docs.google.com/presentation/d/1tuupP8WfmBjFYPCMPFUajpIGdrajUykwrJfQsscG4X4/edit?usp=sharing)
 
 ## 2. 파이썬 스크립트와 API 활용 (isaacsim.robot.manipulators)
 
 - **파이썬 스크립트와 API 활용**  
-  - [FR3 컨트롤 기초 슬라이드](https://docs.google.com/presentation/d/1ImJbjB4ewEsP1DvQoYI8wH1XchSMkLhhVbunT6sv5l8/edit?usp=sharing)  
-  - [FR3_pick_place 슬라이드](https://docs.google.com/presentation/d/1Utw_5IjKaYB-rfhFC_A1U_ccb3WO2LkoUuoIVhKKxfQ/edit?usp=sharing)  
+  - [🗣️ FR3 컨트롤 기초 슬라이드](https://docs.google.com/presentation/d/1ImJbjB4ewEsP1DvQoYI8wH1XchSMkLhhVbunT6sv5l8/edit?usp=sharing)  
+  - [🗣️ FR3_pick_place 슬라이드](https://docs.google.com/presentation/d/1Utw_5IjKaYB-rfhFC_A1U_ccb3WO2LkoUuoIVhKKxfQ/edit?usp=sharing)  
   *원래 코드가 잘 안 되어서 클래스 별로 파일을 나누고 FR3폴더에 정리함*
 
   - [x] 파이썬 스크립트를 활용한 로봇 동작 튜토리얼  
-    - [franka_gripper.py](https://github.com/airobotics01/redEddie/blob/main/FR3/franka_gripper.py)  
-    - [follow_target_with_ik.py](https://github.com/airobotics01/redEddie/blob/main/FR3/follow_target_with_ik.py)  
-    - [follow_target_with_rmpflow.py](https://github.com/airobotics01/redEddie/blob/main/FR3/follow_target_with_rmpflow.py)  
-    - [실습 동영상](https://youtu.be/QxAM6UtmvcU), [실습 동영상 2](https://youtu.be/_Yo0rGRb5ws), [실습 동영상 3](https://youtu.be/zt9luAetkK8)  
+    - [🐍📝 franka_gripper.py](https://github.com/airobotics01/redEddie/blob/main/FR3/franka_gripper.py)  
+    - [🐍📝 follow_target_with_ik.py](https://github.com/airobotics01/redEddie/blob/main/FR3/follow_target_with_ik.py)  
+    - [🐍📝 follow_target_with_rmpflow.py](https://github.com/airobotics01/redEddie/blob/main/FR3/follow_target_with_rmpflow.py)  
+    - [🎞️ 실습](https://youtu.be/QxAM6UtmvcU), [🎞️ 실습 2](https://youtu.be/_Yo0rGRb5ws), [🎞️ 실습 3](https://youtu.be/zt9luAetkK8)  
 
   - [x] Franka Research 3 활용  
     - **Pick Place Task** 생성  
-      - [FR3_pick_place.py](https://github.com/airobotics01/redEddie/blob/main/FR3/pick_place.py)  
-      - [실습 동영상](https://youtu.be/a2e3Q8sN_EA)
-      - [관련 문서](https://docs.isaacsim.omniverse.nvidia.com/latest/core_api_tutorials/tutorial_core_adding_manipulator.html#)  
+      - [🐍📝FR3_pick_place.py](https://github.com/airobotics01/redEddie/blob/main/FR3/pick_place.py)  
+      - [🎞️ 실습](https://youtu.be/a2e3Q8sN_EA)
+      - [📄 관련 문서](https://docs.isaacsim.omniverse.nvidia.com/latest/core_api_tutorials/tutorial_core_adding_manipulator.html#)  
     - **Stacking Task** 생성  
-      - [FR3_stacking.py](https://github.com/airobotics01/redEddie/blob/4.5.0/FR3/staking.py)  
-      - [실습 동영상](https://youtu.be/7UR9dSv3HA4)    
+      - [🐍📝FR3_stacking.py](https://github.com/airobotics01/redEddie/blob/4.5.0/FR3/staking.py)  
+      - [🎞️ 실습](https://youtu.be/7UR9dSv3HA4)    
 
   - [x] **Multiple Tasks**  
-    - [multiple_tasks.py](https://github.com/airobotics01/redEddie/blob/main/FR3/multiple_tasks.py)  
-    - [관련 문서](https://docs.isaacsim.omniverse.nvidia.com/latest/core_api_tutorials/tutorial_core_multiple_tasks.html#)  
+    - [🐍📝multiple_tasks.py](https://github.com/airobotics01/redEddie/blob/main/FR3/multiple_tasks.py)  
+    - [📄 관련 문서](https://docs.isaacsim.omniverse.nvidia.com/latest/core_api_tutorials/tutorial_core_multiple_tasks.html#)  
 
   - **Custom Task 생성**  
     - [x] Franka Research 3를 활용하여 원통형 물체에 대해 PickPlace  
-      - [pick_place_cylinder.py](https://github.com/airobotics01/redEddie/blob/main/FR3/pick_place_cylinder.py)  
-      - [실습 동영상](https://youtu.be/Pc4mxiSyUh4)  
+      - [🐍📝pick_place_cylinder.py](https://github.com/airobotics01/redEddie/blob/main/FR3/pick_place_cylinder.py)  
+      - [🎞️ 실습](https://youtu.be/Pc4mxiSyUh4)  
     - [ ] 여러 종류의 물체를 생성하고 PickPlace 작업 구현  
 
 ## 3. isaacsim.cortex.framework
