@@ -25,7 +25,7 @@ from isaacsim.cortex.framework.robot import CortexGripper
 import isaacsim.robot_motion.motion_generation.interface_config_loader as icl
 
 
-class FrankaGripper(CortexGripper):
+class FR3Gripper(CortexGripper):
     """Franka specific parallel gripper.
 
     Specifies the gripper joints, provides mappings from width to joints, and defines the franka
@@ -69,9 +69,9 @@ class FrankaGripper(CortexGripper):
         return np.array([width / 2, width / 2])
 
 
-class CortexFranka(MotionCommandedRobot):
+class CortexFR3(MotionCommandedRobot):
     """The Cortex Franka contains commanders for commanding the end-effector (a MotionCommander
-    governing the full arm) and the gripper (a FrankaGripper governing the fingers).
+    governing the full arm) and the gripper (a FR3Gripper governing the fingers).
 
     Each of these commanders are accessible via members arm and gripper.
 
@@ -115,7 +115,7 @@ class CortexFranka(MotionCommandedRobot):
             ),
         )
 
-        self.gripper_commander = FrankaGripper(self)
+        self.gripper_commander = FR3Gripper(self)
         self.add_commander("gripper", self.gripper_commander)
 
     def initialize(
@@ -196,16 +196,45 @@ class NullspaceShiftState(DfState):
         return None
 
 
+def add_fr3_to_stage(
+    name: str,
+    prim_path: str,
+    usd_path: Optional[str] = None,
+    position: Optional[Sequence[float]] = None,
+    orientation: Optional[Sequence[float]] = None,
+    use_motion_commander=True,
+):
+    """Adds a Franka to the stage at the specified prim_path, then wrap it as a CortexFR3 object.
+
+    Args:
+        For name, prim_path, position, orientation, and motion_commander, see the CortexFR3 doc
+        string.
+
+        usd_path: An optional path to the Franka USD asset to add. If a specific path is not
+            provided, a default Franka USD path is used.
+
+    Returns: The constructed CortexFR3 object.
+    """
+    if usd_path is not None:
+        add_reference_to_stage(usd_path=usd_path, prim_path=prim_path)
+    else:
+        usd_path = get_assets_root_path_or_die() + "/Isaac/Robots/Franka/FR3/fr3.usd"
+        add_reference_to_stage(usd_path=usd_path, prim_path=prim_path)
+
+    return CortexFR3(name, prim_path, position, orientation, use_motion_commander)
+
+
 def main():
     world = CortexWorld()
-    robot = world.add_robot(add_franka_to_stage(name="franka", prim_path="/World/franka"))
     world.scene.add_default_ground_plane()
-
+    robot = world.add_robot(add_fr3_to_stage(name="my_fr3", prim_path="/World/fr3"))
+    
     decider_network = DfNetwork(
-        DfStateMachineDecider(DfStateSequence([NullspaceShiftState()], loop=True)), context=DfBasicContext(robot)
+        DfStateMachineDecider(DfStateSequence([NullspaceShiftState()], loop=True)),
+        context=DfBasicContext(robot),
     )
     world.add_decider_network(decider_network)
-
+    
     world.run(simulation_app)
     simulation_app.close()
 
