@@ -49,8 +49,7 @@ Isaac Sim에서 Cortex는 협업 로봇 시스템을 위한 의사 결정 프레
  [📄관련 문서 (🏠︎ > Digital Twin > Isaac Cortex)](https://docs.isaacsim.omniverse.nvidia.com/latest/cortex_tutorials/tutorial_cortex_1_overview.html#isaac-cortex-overview)
 
 
-[![스크린샷 2025-02-19 144331](https://github.com/user-attachments/assets/4e20f13e-85c1-4efe-a974-9f278c75c8d3)](https://www.nvidia.com/en-us/on-demand/session/gtcspring23-se52296/)
-
+[![스크린샷 2025-02-19 144331](https://github.com/user-attachments/assets/4e20f13e-85c1-4efe-a974-9f278c75c8d3)](https://www.nvidia.com/en-us/on-demand/session/gtcspring22-s42693/)
 
 - **Standalone Example**
   - [x] [🐍📝 example_command_api_main](https://github.com/airobotics01/redEddie/blob/main/FR3Cortex/example_command_api_main.py
