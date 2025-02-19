@@ -98,7 +98,9 @@ class CortexFranka(MotionCommandedRobot):
         use_motion_commander=True,
     ):
         motion_policy_config = icl.load_supported_motion_policy_config("FR3", "RMPflow")
-        print(motion_policy_config)
+        
+        motion_policy_config["maximum_substep_size"] = 0.00167  # 시뮬 정확도 높이기?
+        motion_policy_config["ignore_robot_state_updates"] = True  # 안정성? 특정조건?
         
         super().__init__(
             name=name,
