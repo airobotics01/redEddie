@@ -52,7 +52,9 @@ Isaac Sim에서 Cortex는 협업 로봇 시스템을 위한 의사 결정 프레
 [![스크린샷 2025-02-19 144331](https://github.com/user-attachments/assets/4e20f13e-85c1-4efe-a974-9f278c75c8d3)](https://www.nvidia.com/en-us/on-demand/session/gtcspring22-s42693/)
 
 - **Standalone Example**
-  - [x] [🐍📝 example_command_api_main](https://github.com/airobotics01/redEddie/blob/main/FR3Cortex/example_command_api_main.py
+  - [x] [🐍📝 example_command_api_main.py](https://github.com/airobotics01/redEddie/blob/main/FR3Cortex/example_command_api_main.py
+)  
+  - [x] [🐍📝 follow_example_main.py](https://github.com/airobotics01/redEddie/blob/main/FR3Cortex/follow_example_main.py
 )  
 
 
