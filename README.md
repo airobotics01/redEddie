@@ -48,6 +48,10 @@
 Isaac Sim에서 Cortex는 협업 로봇 시스템을 위한 의사 결정 프레임워크입니다. Isaac Sim의 로보틱스 도구들을 하나의 일관된 협업 로봇 시스템으로 통합합니다. 
  [📄관련 문서 (🏠︎ > Digital Twin > Isaac Cortex)](https://docs.isaacsim.omniverse.nvidia.com/latest/cortex_tutorials/tutorial_cortex_1_overview.html#isaac-cortex-overview)
 
+
+[![스크린샷 2025-02-19 144331](https://github.com/user-attachments/assets/4e20f13e-85c1-4efe-a974-9f278c75c8d3)](https://www.nvidia.com/en-us/on-demand/session/gtcspring23-se52296/)
+
+
 - [ ] [Stacking Decider](https://docs.isaacsim.omniverse.nvidia.com/latest/cortex_tutorials/tutorial_cortex_4_franka_block_stacking.html#)
 
 
