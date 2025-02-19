@@ -52,11 +52,17 @@ Isaac Sim에서 Cortex는 협업 로봇 시스템을 위한 의사 결정 프레
 [![스크린샷 2025-02-19 144331](https://github.com/user-attachments/assets/4e20f13e-85c1-4efe-a974-9f278c75c8d3)](https://www.nvidia.com/en-us/on-demand/session/gtcspring23-se52296/)
 
 
-- [ ] [Decider Network](https://docs.isaacsim.omniverse.nvidia.com/latest/cortex_tutorials/tutorial_cortex_4_franka_block_stacking.html#)
-- [ ] Behavior Examples: Peck Games
-- [ ] Walkthrough: Franka Block Stacking
-- [ ] ~~Walkthrough: UR10 Bin Stacking~~
-- [ ] Building Cortex Based Extensions
+- **Standalone Example**
+  - [x] [🐍📝 example_command_api_main](https://github.com/airobotics01/redEddie/blob/main/FR3Cortex/example_command_api_main.py
+)  
+
+
+- **Tutorial Sequence**
+  - [ ] [Decider Network](https://docs.isaacsim.omniverse.nvidia.com/latest/cortex_tutorials/tutorial_cortex_4_franka_block_stacking.html#)
+  - [ ] Behavior Examples: Peck Games
+  - [ ] Walkthrough: Franka Block Stacking
+  - [ ] ~~Walkthrough: UR10 Bin Stacking~~
+  - [ ] Building Cortex Based Extensions
 
 ## 기타
 
