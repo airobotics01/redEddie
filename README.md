@@ -56,7 +56,9 @@ Isaac Sim에서 Cortex는 협업 로봇 시스템을 위한 의사 결정 프레
 )  
   - [x] [🐍📝 follow_example_main.py](https://github.com/airobotics01/redEddie/blob/main/FR3Cortex/follow_example_main.py
 )  
-
+  - [x] [🐍📝 follow_example_modified_main.py](https://github.com/airobotics01/redEddie/blob/main/FR3Cortex/follow_example_modified_main.py
+)  
+  - [ ] [🐍📝 fr3_examples_main.py](https://github.com/airobotics01/redEddie/blob/main/FR3Cortex/fr3_examples_main.py)  
 
 - **Tutorial Sequence**
   - [ ] [Decider Network](https://docs.isaacsim.omniverse.nvidia.com/latest/cortex_tutorials/tutorial_cortex_4_franka_block_stacking.html#)
