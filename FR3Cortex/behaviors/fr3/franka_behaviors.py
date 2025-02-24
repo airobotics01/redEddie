@@ -14,13 +14,18 @@ if __name__ == "__main__":
     )
     sys.exit(0)
 
-from isaacsim.cortex.behaviors.franka import (
+from behaviors.fr3 import (
     block_stacking_behavior,
     peck_decider_network,
     peck_game,
     peck_state_machine,
 )
-from isaacsim.cortex.behaviors.franka.simple import simple_decider_network, simple_state_machine
+
+from behaviors.fr3.simple import (
+    simple_decider_network,
+    simple_state_machine,
+)
+
 from isaacsim.cortex.framework.dfb import DfDiagnosticsMonitor
 
 behaviors = {
