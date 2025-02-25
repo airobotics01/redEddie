@@ -25,14 +25,44 @@ class SimpleRoom(FollowTarget):
     def __init__(
         self,
         name: str = "fr3_heart_shape",
-        cylinder_initial_position: Optional[np.ndarray] = None,
-        cylinder_initial_orientation: Optional[np.ndarray] = None,
+        target_prim_path: Optional[str] = None,
+        target_name: Optional[str] = None,
         target_position: Optional[np.ndarray] = None,
-        cylinder_size: Optional[np.ndarray] = None,
+        target_orientation: Optional[np.ndarray] = None,
         offset: Optional[np.ndarray] = None,
+        franka_prim_path: Optional[str] = None,
+        franka_robot_name: Optional[str] = None,
     ):
-        super().__init__(name=name)
+        tasks.FollowTarget.__init__(
+            self,
+            name=name,
+            target_prim_path=target_prim_path,
+            target_name=target_name,
+            target_position=target_position,
+            target_orientation=target_orientation,
+            offset=offset,
+        )
+        self._franka_prim_path = franka_prim_path
+        self._franka_robot_name = franka_robot_name
 
+    def set_robot(self) -> FR3:
+        """[summary]
+
+        Returns:
+            FR3: [description]
+        """
+        if self._franka_prim_path is None:
+            self._franka_prim_path = find_unique_string_name(
+                initial_name="/World/FR3",
+                is_unique_fn=lambda x: not is_prim_path_valid(x),
+            )
+        if self._franka_robot_name is None:
+            self._franka_robot_name = find_unique_string_name(
+                initial_name="my_fr3",
+                is_unique_fn=lambda x: not self.scene.object_exists(x),
+            )
+        return FR3(prim_path=self._franka_prim_path, name=self._franka_robot_name)    
+    
     def set_up_scene(self, scene: Scene) -> None:
         self._scene = scene
         assets_root_path = get_assets_root_path()
