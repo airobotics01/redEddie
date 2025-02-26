@@ -77,3 +77,4 @@ Isaac Sim에서 Cortex는 협업 로봇 시스템을 위한 의사 결정 프레
 - [ ] 컵 transition과 orientation을 제공
 - [ ] 그리퍼에 토크센서 넣을 수 있는지
 - [ ] 컨베이어 벨트에 스폰한 물체 집는거
+- [ ] Templete Extension `isaacsim.examples.interactive` [📝](https://docs.isaacsim.omniverse.nvidia.com/latest/core_api_tutorials/tutorial_core_hello_world.html#) [📝](https://docs.isaacsim.omniverse.nvidia.com/latest/utilities/custom_interactive_examples.html#basesampleuitemplate-basesample-classes)
