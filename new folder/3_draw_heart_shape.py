@@ -32,7 +32,6 @@ from omni.isaac.core.utils.extensions import enable_extension
 enable_extension("isaacsim.util.debug_draw")
 
 from isaacsim.util.debug_draw import _debug_draw
-from isaacsim.examples.interactive.base_sample import BaseSample
 
 
 class SimpleRoom(tasks.FollowTarget):
@@ -118,88 +117,28 @@ class SimpleRoom(tasks.FollowTarget):
         self._move_task_objects_to_their_frame()
         return
 
-    async def setup_pre_reset(self):
-        world = self.get_world()
-        if world.physics_callback_exists("sim_step"):
-            world.remove_physics_callback("sim_step")
-        self._controller.reset()
-        return
-
-    def world_cleanup(self):
-        self._controller.reset()
-        return
-
-    async def setup_post_load(self):
-        self._franka_task = list(self._world.get_current_tasks().values())[0]
-        self._task_params = self._franka_task.get_params()
-        my_franka = self.world.scene.get_object(
-            self._task_params["robot_name"]["value"]
-        )
-        self._controller = RMPFlowController(
-            name="target_follower_controller", robot_articulation=my_franka
-        )
-        self._articulation_controller = my_franka.get_articulation_controller()
-
+    def setup_post_load(self):  # 해당 함수는 task 클래스에 없는 함수라 선언해도 됨.
         # TODO: Initialize Debug Draw
         self.draw = (
-            _debug_draw.acquire_debug_drw_interface()
+            _debug_draw.acquire_debug_draw_interface()
         )  # drawing tool initialized after world is setup
 
         return
 
-    async def _on_follow_target_simulation_step(self, val):
-        world = self.get_world()
-        if val:
-            await world.play_async()
-            world.add_physics_callback(
-                "sim_step", self._on_follow_target_simulation_step
-            )
-        else:
-            world.remove_physics_callback("sim_step")
-        return
 
-    def _on_follow_target_simulation_step(self, step_size):
-        observations = self._world.get_observations()
-        # TODO: Heart Shape Path Creation
-        self.custom_timer += 1  # increment our timer ticks
-        scale_factor = 0.01
-        t = self.custom_timer * scale_factor
-        x = (16 * np.power(np.sin(t), 3)) * scale_factor
-        y = (
-            13 * np.cos(t) - 5 * np.cos(2 * t) - 2 * np.cos(3 * t) - np.cos(4 * t)
-        ) * scale_factor
-        new_pos = observations[
-            self._task_params["target_name"]["value"]["position"] + [0, x, y]
-        ]
+def outer(func):
+    def wrapper(*args):
+        print("****")
+        func(*args)
+        print("****")
 
-        action = self._controller.forward(
-            target_end_effector_position=new_pos,  # observastions[self._task_params["target_name"]["value"]]["position"],
-            target_end_effector_orientation=observations[
-                self._task_params["target_name"]["value"]
-            ]["orientation"],
-        )
-        # TODO: Start Drawing the shape
-        if self.custom_timer % 10 == 0:
-            self.point_list.append(
-                tuple(new_pos + [0.05, 0, 0])
-            )  # add 0.05 to move the drawing a bit forward
-            self.color = (
-                random.uniform(0, 1),
-                random.uniform(0, 1),
-                random.uniform(0, 1),
-                1,
-            )  # RGBa
-            self.draw.clear_lines()  # cleanup some lines every 10 tick
+    return wrapper
 
-        if len(self.point_list) != 0:
-            self.draw.draw_lines_splines(self.point_list, self.color, 5, False)
-            pass
 
-        if len(self.point_list) > 70:
-            del self.point_list[0]  # a buffer list main
-
-        self._articulation_controller.apply_action(action)
-        return
+@outer
+def print_this(*args):
+    for arg in args:
+        print(arg)
 
 
 my_world = World(stage_units_in_meters=1.0)
@@ -217,6 +156,8 @@ my_task = SimpleRoom(name="follow_target_task")
 
 my_world.add_task(my_task)
 my_world.reset()
+# TODO: Initialize Debug Draw
+my_task.setup_post_load()
 task_params = my_world.get_task("follow_target_task").get_params()
 franka_name = task_params["robot_name"]["value"]
 target_name = task_params["target_name"]["value"]
@@ -236,10 +177,47 @@ while simulation_app.is_running():
             my_controller.reset()
             reset_needed = False
         observations = my_world.get_observations()
+        # TODO: Heart Shape Path Creation
+        my_task.custom_timer += 1  # increment our timer ticks
+        scale_factor = 0.01
+        t = my_task.custom_timer * scale_factor
+        x = (16 * np.power(np.sin(t), 3)) * scale_factor
+        y = (
+            13 * np.cos(t) - 5 * np.cos(2 * t) - 2 * np.cos(3 * t) - np.cos(4 * t)
+        ) * scale_factor
+        print_this(x, y, observations)
+        new_pos = observations[target_name]["position"] + [
+            0,
+            x,
+            y,
+        ]
+
         actions = my_controller.forward(
-            target_end_effector_position=observations[target_name]["position"],
-            target_end_effector_orientation=observations[target_name]["orientation"],
+            target_end_effector_position=new_pos,  # observastions[self._task_params["target_name"]["value"]]["position"],
+            target_end_effector_orientation=observations[
+                task_params["target_name"]["value"]
+            ]["orientation"],
         )
+
+        # TODO: Start Drawing the shape
+        if my_task.custom_timer % 10 == 0:
+            my_task.point_list.append(
+                tuple(new_pos + [0.05, 0, 0])
+            )  # add 0.05 to move the drawing a bit forward
+            my_task.colors = (
+                random.uniform(0, 1),
+                random.uniform(0, 1),
+                random.uniform(0, 1),
+                1,
+            )  # RGBa
+            my_task.draw.clear_lines()  # cleanup some lines every 10 tick
+
+        if len(my_task.point_list) != 0:
+            my_task.draw.draw_lines_spline(my_task.point_list, my_task.colors, 5, False)
+            pass
+
+        if len(my_task.point_list) > 70:
+            del my_task.point_list[0]  # a buffer list main
 
         articulation_controller.apply_action(actions)
 
