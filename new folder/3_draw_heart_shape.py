@@ -152,7 +152,7 @@ set_camera_view(
 )
 
 
-my_task = SimpleRoom(name="follow_target_task", target_position=[0.5, 0, 0.7])
+my_task = SimpleRoom(name="follow_target_task", target_position=[0.2, 0, 0.7])
 
 my_world.add_task(my_task)
 my_world.reset()
