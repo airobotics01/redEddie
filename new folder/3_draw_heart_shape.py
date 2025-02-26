@@ -144,7 +144,7 @@ def print_this(*args):
 my_world = World(stage_units_in_meters=1.0)
 
 
-eye_position = [0.0, 2.0, 0.5]  # 카메라의 위치 (x, y, z)
+eye_position = [2.0, 0.0, 0.5]  # 카메라의 위치 (x, y, z)
 target_position = [0.0, 0.0, 0.5]  # 카메라가 바라보는 대상의 위치 (x, y, z)
 camera_prim_path = "/OmniverseKit_Persp"
 set_camera_view(
@@ -152,7 +152,7 @@ set_camera_view(
 )
 
 
-my_task = SimpleRoom(name="follow_target_task")
+my_task = SimpleRoom(name="follow_target_task", target_position=[0.5, 0, 0.7])
 
 my_world.add_task(my_task)
 my_world.reset()
@@ -185,7 +185,6 @@ while simulation_app.is_running():
         y = (
             13 * np.cos(t) - 5 * np.cos(2 * t) - 2 * np.cos(3 * t) - np.cos(4 * t)
         ) * scale_factor
-        print_this(x, y, observations)
         new_pos = observations[target_name]["position"] + [
             0,
             x,
