@@ -17,11 +17,25 @@ from isaacsim.core.utils.prims import is_prim_path_valid
 from omni.isaac.core.utils.stage import add_reference_to_stage
 from omni.isaac.nucleus import get_assets_root_path
 
+import isaacsim.core.api.tasks as tasks
+from isaacsim.core.utils.prims import is_prim_path_valid
+from isaacsim.core.utils.string import find_unique_string_name
+from franka import FR3
+
 from isaacsim.core.utils.viewports import set_camera_view
 from omni.kit.viewport.utility.camera_state import ViewportCameraState
 
+# TODO: Library for drawing shape
+import random
+from omni.isaac.core.utils.extensions import enable_extension
 
-class SimpleRoom(FollowTarget):
+enable_extension("isaacsim.util.debug_draw")
+
+from isaacsim.util.debug_draw import _debug_draw
+from isaacsim.examples.interactive.base_sample import BaseSample
+
+
+class SimpleRoom(tasks.FollowTarget):
     def __init__(
         self,
         name: str = "fr3_heart_shape",
@@ -45,6 +59,14 @@ class SimpleRoom(FollowTarget):
         self._franka_prim_path = franka_prim_path
         self._franka_robot_name = franka_robot_name
 
+        # TODO: Initialize needed variables for drawing
+        self.custom_timer = 0
+        self.point_list = []
+        self.color_list = []
+        self.colors = (0, 0, 0, 1)
+
+        return
+
     def set_robot(self) -> FR3:
         """[summary]
 
@@ -61,8 +83,8 @@ class SimpleRoom(FollowTarget):
                 initial_name="my_fr3",
                 is_unique_fn=lambda x: not self.scene.object_exists(x),
             )
-        return FR3(prim_path=self._franka_prim_path, name=self._franka_robot_name)    
-    
+        return FR3(prim_path=self._franka_prim_path, name=self._franka_robot_name)
+
     def set_up_scene(self, scene: Scene) -> None:
         self._scene = scene
         assets_root_path = get_assets_root_path()
@@ -94,6 +116,89 @@ class SimpleRoom(FollowTarget):
         scene.add(self._robot)
         self._task_objects[self._robot.name] = self._robot
         self._move_task_objects_to_their_frame()
+        return
+
+    async def setup_pre_reset(self):
+        world = self.get_world()
+        if world.physics_callback_exists("sim_step"):
+            world.remove_physics_callback("sim_step")
+        self._controller.reset()
+        return
+
+    def world_cleanup(self):
+        self._controller.reset()
+        return
+
+    async def setup_post_load(self):
+        self._franka_task = list(self._world.get_current_tasks().values())[0]
+        self._task_params = self._franka_task.get_params()
+        my_franka = self.world.scene.get_object(
+            self._task_params["robot_name"]["value"]
+        )
+        self._controller = RMPFlowController(
+            name="target_follower_controller", robot_articulation=my_franka
+        )
+        self._articulation_controller = my_franka.get_articulation_controller()
+
+        # TODO: Initialize Debug Draw
+        self.draw = (
+            _debug_draw.acquire_debug_drw_interface()
+        )  # drawing tool initialized after world is setup
+
+        return
+
+    async def _on_follow_target_simulation_step(self, val):
+        world = self.get_world()
+        if val:
+            await world.play_async()
+            world.add_physics_callback(
+                "sim_step", self._on_follow_target_simulation_step
+            )
+        else:
+            world.remove_physics_callback("sim_step")
+        return
+
+    def _on_follow_target_simulation_step(self, step_size):
+        observations = self._world.get_observations()
+        # TODO: Heart Shape Path Creation
+        self.custom_timer += 1  # increment our timer ticks
+        scale_factor = 0.01
+        t = self.custom_timer * scale_factor
+        x = (16 * np.power(np.sin(t), 3)) * scale_factor
+        y = (
+            13 * np.cos(t) - 5 * np.cos(2 * t) - 2 * np.cos(3 * t) - np.cos(4 * t)
+        ) * scale_factor
+        new_pos = observations[
+            self._task_params["target_name"]["value"]["position"] + [0, x, y]
+        ]
+
+        action = self._controller.forward(
+            target_end_effector_position=new_pos,  # observastions[self._task_params["target_name"]["value"]]["position"],
+            target_end_effector_orientation=observations[
+                self._task_params["target_name"]["value"]
+            ]["orientation"],
+        )
+        # TODO: Start Drawing the shape
+        if self.custom_timer % 10 == 0:
+            self.point_list.append(
+                tuple(new_pos + [0.05, 0, 0])
+            )  # add 0.05 to move the drawing a bit forward
+            self.color = (
+                random.uniform(0, 1),
+                random.uniform(0, 1),
+                random.uniform(0, 1),
+                1,
+            )  # RGBa
+            self.draw.clear_lines()  # cleanup some lines every 10 tick
+
+        if len(self.point_list) != 0:
+            self.draw.draw_lines_splines(self.point_list, self.color, 5, False)
+            pass
+
+        if len(self.point_list) > 70:
+            del self.point_list[0]  # a buffer list main
+
+        self._articulation_controller.apply_action(action)
         return
 
 
