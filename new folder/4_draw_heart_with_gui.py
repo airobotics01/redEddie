@@ -6,12 +6,13 @@ from isaacsim.core.api import World
 from isaacsim.core.api.scenes.scene import Scene
 from isaacsim.core.utils.rotations import euler_angles_to_quat
 from isaacsim.core.utils.string import find_unique_string_name
-from isaacsim.core.utils.prims import is_prim_path_valid
+from isaacsim.core.utils.prims import is_prim_path_valid, get_prim_at_path
 from isaacsim.core.utils.viewports import set_camera_view
-from isaacsim.core.utils.stage import add_reference_to_stage
+from isaacsim.core.utils.stage import add_reference_to_stage, get_current_stage
 from omni.isaac.nucleus import get_assets_root_path
 from omni.isaac.core.utils.extensions import enable_extension
 from omni.kit.viewport.utility.camera_state import ViewportCameraState
+from pxr import UsdGeom
 
 from controllers.rmpflow_controller import RMPFlowController
 from tasks.follow_target import FollowTarget
@@ -117,8 +118,9 @@ class FrankaRobotTask(tasks.FollowTarget):
 class HeartShapeDrawing:
     """하트 모양 생성 및 그리기를 담당하는 클래스"""
 
-    def __init__(self):
+    def __init__(self, name="heart_drawing", color=(1.0, 0.5, 0.2, 1.0)):
         # Drawing variables
+        self.name = name
         self.custom_timer = 0
         self._frame_counter = 0
         self.timer_speed = 1.0
@@ -126,9 +128,10 @@ class HeartShapeDrawing:
         self.draw = None
         # Default drawing settings
         self.draw_scale = 1.0
-        self.draw_color = (1.0, 0.5, 0.2, 1.0)  # Default color (RGBA)
+        self.draw_color = color  # Default color (RGBA)
         self.line_thickness = 5
         self.is_active = True
+        self.is_tracking_only = False  # Flag for EE tracking mode
 
     def setup_post_load(self):
         """디버그 드로잉 인터페이스 초기화"""
@@ -161,14 +164,22 @@ class HeartShapeDrawing:
         if not self.is_active:
             return observations[target_name]["position"]
 
-        scale_factor = 0.01 * self.draw_scale
-        t = self.custom_timer * scale_factor
-        x = (16 * np.power(np.sin(t), 3)) * scale_factor
-        y = (
-            13 * np.cos(t) - 5 * np.cos(2 * t) - 2 * np.cos(3 * t) - np.cos(4 * t)
-        ) * scale_factor
+        # 원본 좌표 저장
+        original_position = observations[target_name]["position"]
 
-        new_pos = observations[target_name]["position"] + [0, x, y]
+        # 트래킹 모드일 경우 포지션은 변경하지 않고 그리기만 함
+        if self.is_tracking_only:
+            new_pos = original_position
+        else:
+            # 하트 모양의 파라메트릭 방정식
+            scale_factor = 0.01 * self.draw_scale
+            t = self.custom_timer * scale_factor
+            x = (16 * np.power(np.sin(t), 3)) * scale_factor
+            y = (
+                13 * np.cos(t) - 5 * np.cos(2 * t) - 2 * np.cos(3 * t) - np.cos(4 * t)
+            ) * scale_factor
+
+            new_pos = original_position + [0, x, y]
 
         # Record points for drawing
         self._frame_counter += 1
@@ -187,13 +198,56 @@ class HeartShapeDrawing:
         if len(self.point_list) > 70:
             del self.point_list[0]
 
-        # Use timer_speed to adjust the increment rate
-        self.custom_timer += self.timer_speed
+        # Use timer_speed to adjust the increment rate (트래킹 모드가 아닐 때만)
+        if not self.is_tracking_only:
+            self.custom_timer += self.timer_speed
+
         return new_pos
+
+    def draw_point_tracking(self, position):
+        """주어진 포지션에 트래킹 포인트 추가"""
+        if not self.is_active:
+            return
+
+        if isinstance(position, np.ndarray):
+            position_tuple = tuple(position)
+        else:
+            position_tuple = tuple(position)
+
+        # Record points for drawing
+        self._frame_counter += 1
+        if self._frame_counter % 5 == 0:
+            self.point_list.append(position_tuple)
+            if len(self.point_list) > 100:  # 추적 포인트 제한
+                del self.point_list[0]
+            if self.draw:
+                self.draw.clear_lines()
+
+        # Draw lines if we have points
+        if len(self.point_list) != 0 and self.draw:
+            self.draw.draw_lines_spline(
+                self.point_list, self.draw_color, self.line_thickness, False
+            )
 
     def set_active(self, active: bool):
         """그리기 활성화/비활성화 설정"""
         self.is_active = active
+
+    def set_tracking_only(self, tracking_only: bool):
+        """트래킹 모드 설정"""
+        self.is_tracking_only = tracking_only
+
+
+# End Effector 위치 추적 함수
+def get_end_effector_position():
+    """FR3 로봇의 엔드 이펙터 위치 가져오기"""
+    stage = get_current_stage()
+    ee_prim = get_prim_at_path("/World/FR3/fr3_rightfinger")
+    if ee_prim:
+        xform = UsdGeom.Xformable(ee_prim)
+        world_transform = xform.ComputeLocalToWorldTransform(0)
+        return world_transform.ExtractTranslation()
+    return None
 
 
 # UI 클래스
@@ -208,16 +262,16 @@ class HeartShapeControlWindow(ui.Window):
         # UI control values
         self.timer_speed = 1.0
         self.size_value = 1.0
-        self.color_r = 1.0
-        self.color_g = 0.5
-        self.color_b = 0.2
-        self.color_a = 1.0
+        self.color_r = self.drawing.draw_color[0]
+        self.color_g = self.drawing.draw_color[1]
+        self.color_b = self.drawing.draw_color[2]
+        self.color_a = self.drawing.draw_color[3]
         self.line_thickness = 5
         self.drawing_active = True
 
     def _build_fn(self):
         with ui.VStack(spacing=10, height=0):
-            ui.Label("Heart Shape Controls", alignment=ui.Alignment.CENTER)
+            ui.Label(f"{self.drawing.name} Controls", alignment=ui.Alignment.CENTER)
 
             ui.Spacer(height=20)
 
@@ -331,24 +385,24 @@ class HeartShapeControlWindow(ui.Window):
         )
 
         print(
-            f"Applied settings - Timer Speed: {self.timer_speed:.1f}, "
+            f"Applied settings for {self.drawing.name} - Timer Speed: {self.timer_speed:.1f}, "
             f"Size: {self.size_value:.1f}, "
             f"Thickness: {self.line_thickness}, "
             f"Color: RGBA({self.color_r:.2f}, {self.color_g:.2f}, {self.color_b:.2f}, {self.color_a:.2f})"
         )
 
     def _reset_drawing(self):
-        print("Resetting drawing")
+        print(f"Resetting {self.drawing.name} drawing")
         self.drawing.reset_drawing()
 
     def _reset_settings(self):
         self.timer_speed = 1.0
         self.size_value = 1.0
         self.line_thickness = 5
-        self.color_r = 1.0
-        self.color_g = 0.5
-        self.color_b = 0.2
-        self.color_a = 1.0
+        self.color_r = self.drawing.draw_color[0]
+        self.color_g = self.drawing.draw_color[1]
+        self.color_b = self.drawing.draw_color[2]
+        self.color_a = self.drawing.draw_color[3]
         self.drawing_active = True
         self.drawing.set_active(True)
 
@@ -361,7 +415,7 @@ class HeartShapeControlWindow(ui.Window):
             thickness=self.line_thickness,
         )
 
-        print("Settings reset to default values")
+        print(f"Settings for {self.drawing.name} reset to default values")
         # Force UI rebuild to show the reset values
         self.frame.rebuild()
 
@@ -384,9 +438,18 @@ def main():
     my_world.add_task(my_task)
     my_world.reset()
 
-    # 드로잉 객체 생성
-    heart_drawing = HeartShapeDrawing()
-    heart_drawing.setup_post_load()
+    # 드로잉 객체 생성 (두 개의 인스턴스)
+    # 타겟용 하트 드로잉 (오렌지색)
+    target_heart_drawing = HeartShapeDrawing(
+        name="Target Heart", color=(1.0, 0.5, 0.2, 1.0)
+    )
+    target_heart_drawing.setup_post_load()
+
+    # EE용 트래킹 드로잉 (파란색)
+    ee_heart_drawing = HeartShapeDrawing(name="EE Tracking", color=(0.2, 0.5, 1.0, 1.0))
+    ee_heart_drawing.setup_post_load()
+    ee_heart_drawing.set_tracking_only(True)  # 트래킹 모드로 설정
+    ee_heart_drawing.line_thickness = 3  # 더 얇게 설정
 
     # Task 파라미터 가져오기
     task_params = my_world.get_task("follow_target_task").get_params()
@@ -400,8 +463,10 @@ def main():
     )
     articulation_controller = my_franka.get_articulation_controller()
 
-    # 제어 윈도우 생성
-    control_window = HeartShapeControlWindow("Heart Shape Controls", heart_drawing)
+    # 타겟 제어 윈도우 생성 (EE용은 생성하지 않음)
+    control_window = HeartShapeControlWindow(
+        "Target Heart Controls", target_heart_drawing
+    )
 
     # 메인 시뮬레이션 루프
     reset_needed = False
@@ -415,13 +480,14 @@ def main():
             if reset_needed:
                 my_world.reset()
                 my_controller.reset()
-                heart_drawing.reset_drawing()
+                target_heart_drawing.reset_drawing()
+                ee_heart_drawing.reset_drawing()
                 reset_needed = False
 
             observations = my_world.get_observations()
 
-            # 하트 모양 그리기 및 새 위치 가져오기
-            new_pos = heart_drawing.draw_heart_shape(observations, target_name)
+            # 타겟 하트 모양 그리기 및 새 위치 가져오기
+            new_pos = target_heart_drawing.draw_heart_shape(observations, target_name)
 
             # 로봇 컨트롤러 업데이트
             actions = my_controller.forward(
@@ -433,6 +499,11 @@ def main():
 
             # 로봇에 액션 적용
             articulation_controller.apply_action(actions)
+
+            # 엔드 이펙터 위치 가져오기 및 트래킹
+            ee_pos = get_end_effector_position()
+            if ee_pos is not None:
+                ee_heart_drawing.draw_point_tracking(ee_pos)
 
     simulation_app.close()
 
