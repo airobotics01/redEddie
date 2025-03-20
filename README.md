@@ -67,6 +67,38 @@ Isaac Sim에서 Cortex는 협업 로봇 시스템을 위한 의사 결정 프레
   - [ ] ~~Walkthrough: UR10 Bin Stacking~~
   - [ ] Building Cortex Based Extensions
 
+
+## ROS2
+
+Driving TurtleBot via ROS2 messages [[📝]
+](https://docs.isaacsim.omniverse.nvidia.com/latest/ros2_tutorials/tutorial_ros2_drive_turtlebot.html)  
+
+ROS2 Joint Control [[📝]
+](https://docs.isaacsim.omniverse.nvidia.com/latest/ros2_tutorials/tutorial_ros2_manipulation.html)
+
+
+
+`colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release` or
+
+`colcon build —symlink-install` or `colcon build --packages-select fr3_control`
+
+
+
+**joint_state_subscriber.py (fr3)**
+```
+ros2 run fr3_control ros2_publisher
+```
+
+**home_position_server.py**
+```
+ros2 run fr3_control home_position_server
+ros2 service call /go_home std_srvs/srv/Trigger
+```
+
+
+
+
+
 ## 기타
 
 - [ ] **Isaac Manipulator**  
