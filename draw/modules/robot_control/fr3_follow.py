@@ -13,7 +13,7 @@ from isaacsim.core.prims import SingleXFormPrim
 from franka import FR3
 
 
-class FR3DrawHeart(tasks.FollowTarget):
+class FR3Follow(tasks.FollowTarget):
     """FR3 로봇 제어를 위한 기본 Task 클래스"""
 
     def __init__(
