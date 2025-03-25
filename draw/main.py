@@ -30,7 +30,7 @@ from typing import List, Optional
 enable_extension("isaacsim.util.debug_draw")
 from isaacsim.util.debug_draw import _debug_draw
 
-from modules.robot_control.fr3_draw_heart import FR3DrawHeart
+from modules.robot_control.fr3_follow import FR3Follow
 
 
 # End Effector 위치 추적 함수
