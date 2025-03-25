@@ -71,7 +71,7 @@ def main():
 
     # 초기화
     original_position = [0.5, 0, 0.2]
-    my_task = FR3DrawHeart(name="heart_drawing_task", target_position=original_position)
+    my_task = FR3Follow(name="heart_drawing_task", target_position=original_position)
     my_world.add_task(my_task)
     my_world.reset()
 
