@@ -64,6 +64,7 @@ def main():
     # 초기화
     character_name = "ㄹ"  # 그릴 한글 문자
     original_position = [0.5, 0, 0.2]  # 시작 위치
+    draw_scale = 1.5  # 그리기 속도 조절 (1.0보다 크면 빠르게, 작으면 느리게)
     my_task = FR3Follow(name="drawing_task", target_position=original_position)
     my_world.add_task(my_task)
     my_world.reset()
@@ -120,6 +121,7 @@ def main():
                     tick,
                     character_name,
                     current_stroke=current_stroke,
+                    draw_scale=draw_scale,  # 그리기 속도 전달
                     ee_pos=ee_pos,
                     original_position=np.array(original_position),
                 )

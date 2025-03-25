@@ -4,7 +4,7 @@ import numpy as np
 
 script_path = os.path.abspath(__file__)
 json_path = os.path.dirname(script_path)
-json_path += "/asset/test_korean.json"
+json_path += "/asset/korean.json"
 with open(json_path, encoding="utf-8") as f:
     data = json.load(f)
     character_path = data["characters"]
@@ -109,8 +109,15 @@ def generate_korean_character(
         return convert_coordinate(start_point) + original_position, False
 
     elif current_state == 2:
-        print(f"그리기: {distance_to_end}")
-        approach_point = end_point.copy()
+        # 시작점과 끝점 사이의 진행률 계산
+        total_distance = np.linalg.norm(_end_point - _start_point)
+        current_distance = np.linalg.norm(ee_pos - _start_point)
+        # draw_scale을 사용하여 진행률 계산 속도 조절
+        progress = min(1.0, (current_distance / total_distance) * draw_scale)
+        print(f"그리기: {progress*100} %")
+
+        # 시작점과 끝점 사이를 보간
+        approach_point = start_point + (end_point - start_point) * progress
         if distance_to_end <= 0.02:
             current_state = 3
             return convert_coordinate(approach_point) + original_position, True
