@@ -26,6 +26,9 @@ import carb
 import random
 from typing import List, Optional
 
+from korean import find_paths_by_name, generate_korean_character
+
+
 # Debug drawing extension
 enable_extension("isaacsim.util.debug_draw")
 from isaacsim.util.debug_draw import _debug_draw
@@ -45,33 +48,23 @@ def get_end_effector_position():
     return None
 
 
-def generate_heart(tick, draw_scale=1.0):
-    """하트 모양 생성"""
-    scale_factor = 0.01 * draw_scale
-    t = tick * scale_factor
-    x = (16 * np.power(np.sin(t), 3)) * scale_factor
-    y = (
-        13 * np.cos(t) - 5 * np.cos(2 * t) - 2 * np.cos(3 * t) - np.cos(4 * t)
-    ) * scale_factor
-    return np.array([y, x, 0])
-
-
 # 메인 스크립트 실행
 def main():
     # 월드 생성
     my_world = World(stage_units_in_meters=1.0)
 
     # 카메라 뷰 설정
-    eye_position = [2.0, 0.0, 0.5]
-    target_position = [0.0, 0.0, 0.5]
+    eye_position = [1.0, 0.0, 0.8]
+    target_position = [0.0, 0.0, 0.0]
     camera_prim_path = "/OmniverseKit_Persp"
     set_camera_view(
         eye=eye_position, target=target_position, camera_prim_path=camera_prim_path
     )
 
     # 초기화
-    original_position = [0.5, 0, 0.2]
-    my_task = FR3Follow(name="heart_drawing_task", target_position=original_position)
+    character_name = "ㄹ"  # 그릴 한글 문자
+    original_position = [0.5, 0, 0.2]  # 시작 위치
+    my_task = FR3Follow(name="drawing_task", target_position=original_position)
     my_world.add_task(my_task)
     my_world.reset()
 
@@ -79,7 +72,7 @@ def main():
     ee_drawer.initialize()
 
     # Task 파라미터 가져오기
-    task_params = my_world.get_task("heart_drawing_task").get_params()
+    task_params = my_world.get_task("drawing_task").get_params()
     franka_name = task_params["robot_name"]["value"]
     target_name = task_params["target_name"]["value"]
     my_franka = my_world.scene.get_object(franka_name)
@@ -99,6 +92,7 @@ def main():
     # 메인 시뮬레이션 루프
     reset_needed = False
     tick = 0
+    current_stroke = 0
     while simulation_app.is_running():
         my_world.step(render=True)
 
@@ -110,25 +104,45 @@ def main():
                 my_world.reset()
                 my_controller.reset()
                 reset_needed = False
+                current_stroke = 0
+                tick = 0  # 새로운 획을 위해 tick 초기화
 
             observations = my_world.get_observations()
             tick += 1
-            trajectory = generate_heart(tick)
-            new_pos = np.array(original_position) + trajectory
 
-            # 타겟 위치 설정
-            my_task.set_cube_pose(new_pos)
+            # 현재 엔드 이펙터 위치 가져오기
+            ee_pos = get_end_effector_position()
+            if ee_pos is not None:
+                ee_drawer.update_drawing(ee_pos)
 
-            # 로봇 컨트롤러 업데이트
-            actions = my_controller.forward(
-                target_end_effector_position=new_pos,
-                target_end_effector_orientation=observations[target_name][
-                    "orientation"
-                ],
-            )
+                # 한글 문자 궤적 생성
+                trajectory, is_stroke_complete = generate_korean_character(
+                    tick,
+                    character_name,
+                    current_stroke=current_stroke,
+                    ee_pos=ee_pos,
+                    original_position=np.array(original_position),
+                )
+                if trajectory is not None:
+                    # 타겟 위치 설정
+                    my_task.set_cube_pose(trajectory)
 
-            # 로봇에 액션 적용
-            articulation_controller.apply_action(actions)
+                    # 로봇 컨트롤러 업데이트
+                    actions = my_controller.forward(
+                        target_end_effector_position=trajectory,
+                        target_end_effector_orientation=observations[target_name][
+                            "orientation"
+                        ],
+                    )
+
+                    # 로봇에 액션 적용
+                    articulation_controller.apply_action(actions)
+
+                # 현재 획이 완료되었는지 확인
+                if is_stroke_complete:
+                    current_stroke += 1
+                    print(f"[STROKE UPDATE] current_stroke: {current_stroke}")
+                    tick = 0  # 새로운 획을 위해 tick 초기화
 
             # 디버깅 그리기
             ee_pos = get_end_effector_position()
