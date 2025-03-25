@@ -40,8 +40,6 @@ class FR3DrawHeart(tasks.FollowTarget):
         self._franka_robot_name = franka_robot_name
         self._scene = None
         self._robot = None
-        self.draw_scale = 0.0
-        self.tick = 0
         return
 
     def set_robot(self) -> FR3:
@@ -69,7 +67,7 @@ class FR3DrawHeart(tasks.FollowTarget):
         if self._target_orientation is None:
             # x축 기준 180도 회전을 원래대로 되돌리는 쿼터니언 [w, x, y, z]
             self._target_orientation = np.array(
-                [0.0, 1.0, 0.0, 0.0]
+                euler_angles_to_quat(np.array([np.pi, 0.0, 0.0]))
             )  # x축 180도 회전을 원래대로
         if self._target_prim_path is None:
             self._target_prim_path = find_unique_string_name(
@@ -144,32 +142,10 @@ class FR3DrawHeart(tasks.FollowTarget):
         ).get_world_pose()
         return cube_position
 
-    def set_cube_pose(
-        self, position: np.ndarray, orientation: Optional[np.ndarray] = None
-    ):
+    def set_cube_pose(self, position, orientation=None):
         """큐브 위치 설정"""
         if orientation is None:
-            # 현재 orientation 유지
-            _, current_orientation = self._scene.get_object(
-                self._target_name
-            ).get_world_pose()
-            orientation = current_orientation
-
-        self._scene.get_object(self._target_name).set_world_pose(
-            position=position, orientation=orientation
-        )
-
-    def generate_heart(self):
-        """하트 모양 생성"""
-        self.tick += 1
-        self.draw_scale = 1.0
-        scale_factor = 0.01 * self.draw_scale
-        t = self.tick * scale_factor
-        x = (16 * np.power(np.sin(t), 3)) * scale_factor
-        y = (
-            13 * np.cos(t) - 5 * np.cos(2 * t) - 2 * np.cos(3 * t) - np.cos(4 * t)
-        ) * scale_factor
-
-        original_position = self.get_cube_pose()
-        new_pos = original_position + [y, x, 0]
-        return new_pos
+            orientation = (
+                self._target_orientation
+            )  # 회전 정보가 없으면 원래 회전 정보 사용
+        self._scene.get_object(self._target_name).set_world_pose(position, orientation)
