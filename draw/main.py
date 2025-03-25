@@ -15,7 +15,6 @@ from omni.kit.viewport.utility.camera_state import ViewportCameraState
 from pxr import UsdGeom
 
 from controllers.rmpflow_controller import RMPFlowController
-from tasks.follow_target import FollowTarget
 from franka import FR3
 from modules.visualization.trajectory_drawer import TrajectoryDrawer
 
@@ -33,8 +32,6 @@ from isaacsim.util.debug_draw import _debug_draw
 
 from modules.robot_control.fr3_draw_heart import FR3DrawHeart
 
-# motion_commander_target
-
 
 # End Effector 위치 추적 함수
 def get_end_effector_position():
@@ -46,6 +43,17 @@ def get_end_effector_position():
         world_transform = xform.ComputeLocalToWorldTransform(0)
         return world_transform.ExtractTranslation()
     return None
+
+
+def generate_heart(tick, draw_scale=1.0):
+    """하트 모양 생성"""
+    scale_factor = 0.01 * draw_scale
+    t = tick * scale_factor
+    x = (16 * np.power(np.sin(t), 3)) * scale_factor
+    y = (
+        13 * np.cos(t) - 5 * np.cos(2 * t) - 2 * np.cos(3 * t) - np.cos(4 * t)
+    ) * scale_factor
+    return np.array([y, x, 0])
 
 
 # 메인 스크립트 실행
@@ -62,12 +70,11 @@ def main():
     )
 
     # 초기화
-    my_task = FR3DrawHeart(name="heart_drawing_task", target_position=[0.5, 0, 0.7])
+    original_position = [0.5, 0, 0.2]
+    my_task = FR3DrawHeart(name="heart_drawing_task", target_position=original_position)
     my_world.add_task(my_task)
     my_world.reset()
 
-    heart_drawer = TrajectoryDrawer()
-    heart_drawer.initialize()
     ee_drawer = TrajectoryDrawer()
     ee_drawer.initialize()
 
@@ -91,6 +98,7 @@ def main():
 
     # 메인 시뮬레이션 루프
     reset_needed = False
+    tick = 0
     while simulation_app.is_running():
         my_world.step(render=True)
 
@@ -104,7 +112,12 @@ def main():
                 reset_needed = False
 
             observations = my_world.get_observations()
-            new_pos = my_task.generate_heart()
+            tick += 1
+            trajectory = generate_heart(tick)
+            new_pos = np.array(original_position) + trajectory
+
+            # 타겟 위치 설정
+            my_task.set_cube_pose(new_pos)
 
             # 로봇 컨트롤러 업데이트
             actions = my_controller.forward(
@@ -118,7 +131,6 @@ def main():
             articulation_controller.apply_action(actions)
 
             # 디버깅 그리기
-            heart_drawer.update_drawing(position=new_pos, draw_offset=[0.05, 0, 0])
             ee_pos = get_end_effector_position()
             if ee_pos is not None:
                 ee_drawer.update_drawing(ee_pos)
