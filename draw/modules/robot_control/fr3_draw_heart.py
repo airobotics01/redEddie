@@ -7,6 +7,9 @@ from isaacsim.core.utils.prims import is_prim_path_valid
 from isaacsim.core.api.scenes.scene import Scene
 from omni.isaac.nucleus import get_assets_root_path
 from isaacsim.core.utils.stage import add_reference_to_stage
+from isaacsim.core.api.objects import VisualCuboid
+from isaacsim.core.prims import SingleXFormPrim
+
 from franka import FR3
 
 
@@ -70,7 +73,7 @@ class FR3DrawHeart(tasks.FollowTarget):
             )  # x축 180도 회전을 원래대로
         if self._target_prim_path is None:
             self._target_prim_path = find_unique_string_name(
-                initial_name="/World/TargetCube",
+                initial_name="/World/motion_commander_target",
                 is_unique_fn=lambda x: not is_prim_path_valid(x),
             )
         if self._target_name is None:
@@ -78,6 +81,8 @@ class FR3DrawHeart(tasks.FollowTarget):
                 initial_name="target",
                 is_unique_fn=lambda x: not self.scene.object_exists(x),
             )
+
+        # 타겟 큐브 생성 및 설정
         self.set_params(
             target_prim_path=self._target_prim_path,
             target_position=self._target_position,
@@ -88,6 +93,44 @@ class FR3DrawHeart(tasks.FollowTarget):
         scene.add(self._robot)
         self._task_objects[self._robot.name] = self._robot
         self._move_task_objects_to_their_frame()
+        return
+
+    def set_params(
+        self,
+        target_prim_path: Optional[str] = None,
+        target_name: Optional[str] = None,
+        target_position: Optional[np.ndarray] = None,
+        target_orientation: Optional[np.ndarray] = None,
+    ) -> None:
+        """타겟 파라미터 설정"""
+        if target_prim_path is not None:
+            if self._target is not None:
+                del self._task_objects[self._target.name]
+            if is_prim_path_valid(target_prim_path):
+                self._target = self.scene.add(
+                    SingleXFormPrim(
+                        prim_path=target_prim_path,
+                        position=target_position,
+                        orientation=target_orientation,
+                        name=target_name,
+                    )
+                )
+            else:
+                self._target = self.scene.add(
+                    VisualCuboid(
+                        name=target_name,
+                        prim_path=target_prim_path,
+                        position=target_position,
+                        orientation=target_orientation,
+                        color=np.array([0.15, 0.15, 0.15]),  # 회색으로 설정
+                        size=0.01,  # 크기 설정
+                    )
+                )
+            self._task_objects[self._target.name] = self._target
+        else:
+            self._target.set_local_pose(
+                position=target_position, orientation=target_orientation
+            )
         return
 
     def get_robot(self):
@@ -101,6 +144,21 @@ class FR3DrawHeart(tasks.FollowTarget):
         ).get_world_pose()
         return cube_position
 
+    def set_cube_pose(
+        self, position: np.ndarray, orientation: Optional[np.ndarray] = None
+    ):
+        """큐브 위치 설정"""
+        if orientation is None:
+            # 현재 orientation 유지
+            _, current_orientation = self._scene.get_object(
+                self._target_name
+            ).get_world_pose()
+            orientation = current_orientation
+
+        self._scene.get_object(self._target_name).set_world_pose(
+            position=position, orientation=orientation
+        )
+
     def generate_heart(self):
         """하트 모양 생성"""
         self.tick += 1
@@ -113,5 +171,5 @@ class FR3DrawHeart(tasks.FollowTarget):
         ) * scale_factor
 
         original_position = self.get_cube_pose()
-        new_pos = original_position + [0, x, y]
+        new_pos = original_position + [y, x, 0]
         return new_pos
